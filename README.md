@@ -80,19 +80,15 @@ The user-facing result could look like this:
 ACTIVE PROJECT CONTEXT
 
 Scope: examples/demo-project/red/**
-Status: derived for this task
+Source: AGENTS.md hierarchy (3 files)
+Updated: when sources change
 
-✓ Read README.md before editing
-✓ Prefer small, reversible changes
-✓ Prefer warm color tones
-✓ Rose inherits all red conventions
+✓ Read README.md before editing          ← AGENTS.md:3
+✓ Prefer small, reversible changes       ← examples/demo-project/AGENTS.md:4
+✓ Prefer warm color tones                ← examples/demo-project/red/AGENTS.md:1
+✓ Rose inherits all red conventions       ← examples/demo-project/red/AGENTS.md:2
 
-Sources:
-  AGENTS.md (repository scope, lines 1–4)
-  examples/demo-project/AGENTS.md (project scope, lines 1–6)
-  examples/demo-project/red/AGENTS.md (red scope, lines 1–4)
-
-[Inspect sources] [Disable for this task] [Promote to Zo Rule]
+[Inspect sources] [Disable for this repo]
 ```
 
 The important word is **derived**, not hidden. If Zo applies instructions that
