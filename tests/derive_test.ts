@@ -1,10 +1,10 @@
 import { assertEquals, assertStringIncludes } from "jsr:@std/assert@1";
 import { derive } from "../src/derive.ts";
 
-const root = new URL("../examples/demo-project/", import.meta.url).pathname;
+const root = new URL("../", import.meta.url).pathname;
 
 Deno.test("derives AGENTS.md from broad to narrow scope", async () => {
-  const result = await derive(root, "wiki/importer.ts");
+  const result = await derive(root, "examples/demo-project/wiki/importer.ts");
 
   assertEquals(result.target, "wiki/importer.ts");
   assertEquals(result.targetExists, true);
@@ -21,12 +21,12 @@ Deno.test("derives AGENTS.md from broad to narrow scope", async () => {
 });
 
 Deno.test("reports a missing target without inventing sources", async () => {
-  const result = await derive(root, "wiki/missing.ts");
+  const result = await derive(root, "examples/demo-project/wiki/missing.ts");
 
   assertEquals(result.targetExists, false);
   assertEquals(result.sources, []);
   assertEquals(result.diagnostics, [
-    "Target does not exist: wiki/missing.ts",
+    "Target does not exist: examples/demo-project/wiki/missing.ts",
     "No applicable AGENTS.md files found.",
   ]);
 });
