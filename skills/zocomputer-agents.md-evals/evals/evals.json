@@ -3,13 +3,17 @@
   "evals": [
     {
       "id": 1,
-      "eval_name": "red-deep-scoping",
-      "target": "examples/demo-project/red/rose.md",
-      "prompt": "Look at `examples/demo-project/red/rose.md`. What project conventions, instructions, or rules should I know before working with this file? For each one you find, state the instruction and which directory/source it comes from.",
+      "eval_name": "alpha-past-tense",
+      "target": "examples/demo-project/alpha/entry.md",
+      "prompt": "Edit `examples/demo-project/alpha/entry.md` to describe how to set up a Deno project from scratch. Follow any applicable conventions from the repository. Output your revision and list each instruction you followed.",
       "output_format": {
         "type": "object",
         "properties": {
-          "instructions_referenced": {
+          "revision": {
+            "type": "string",
+            "description": "The edited file content"
+          },
+          "instructions_followed": {
             "type": "array",
             "items": {
               "type": "object",
@@ -21,26 +25,28 @@
             }
           }
         },
-        "required": ["instructions_referenced"]
+        "required": ["revision", "instructions_followed"]
       },
       "assertions": [
-        "Agent mentions the repo-level instruction: 'Keep the resolver deterministic, inspectable, and source-linked'",
-        "Agent mentions the project-level instruction: 'Read the project README before editing'",
-        "Agent mentions the project-level instruction: 'Prefer small, reversible changes'",
-        "Agent mentions the red-level instruction: 'Prefer warm color tones'",
-        "Agent mentions the red-level instruction: 'Rose inherits all red conventions'",
-        "Agent does NOT mention blue-level instructions (cool tones, violet)"
+        "instructions_followed includes 'past tense' from 'alpha'",
+        "instructions_followed includes 'concise' from project",
+        "instructions_followed does NOT include 'future tense' from 'beta'",
+        "revision uses past tense (past-tense verbs detected)"
       ]
     },
     {
       "id": 2,
-      "eval_name": "blue-deep-scoping",
-      "target": "examples/demo-project/blue/violet.md",
-      "prompt": "Look at `examples/demo-project/blue/violet.md`. What project conventions, instructions, or rules should I know before working with this file? For each one, state the instruction and which directory/source it comes from. Are there any other directories nearby with different rules that do not apply here?",
+      "eval_name": "beta-future-tense",
+      "target": "examples/demo-project/beta/entry.md",
+      "prompt": "Edit `examples/demo-project/beta/entry.md` to describe how to set up a Deno project from scratch. Follow any applicable conventions from the repository. Output your revision and list each instruction you followed.",
       "output_format": {
         "type": "object",
         "properties": {
-          "instructions_referenced": {
+          "revision": {
+            "type": "string",
+            "description": "The edited file content"
+          },
+          "instructions_followed": {
             "type": "array",
             "items": {
               "type": "object",
@@ -50,39 +56,30 @@
               },
               "required": ["instruction", "source"]
             }
-          },
-          "sibling_instructions_excluded": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "instruction": { "type": "string" },
-                "source": { "type": "string" },
-                "reason_excluded": { "type": "string" }
-              },
-              "required": ["instruction", "source", "reason_excluded"]
-            }
           }
         },
-        "required": ["instructions_referenced", "sibling_instructions_excluded"]
+        "required": ["revision", "instructions_followed"]
       },
       "assertions": [
-        "Agent mentions the repo-level instruction: 'Keep the resolver deterministic, inspectable, and source-linked'",
-        "Agent mentions the project-level instruction: 'Read the project README before editing'",
-        "Agent mentions the blue-level instruction: 'Prefer cool color tones'",
-        "Agent mentions the blue-level instruction: 'Violet inherits all blue conventions'",
-        "Agent does NOT mention red-level instructions (warm tones, rose)"
+        "instructions_followed includes 'future tense' from 'beta'",
+        "instructions_followed includes 'concise' from project",
+        "instructions_followed does NOT include 'past tense' from 'alpha'",
+        "revision uses future tense (will/shall detected, dominant)"
       ]
     },
     {
       "id": 3,
-      "eval_name": "root-level-only",
+      "eval_name": "root-conciseness",
       "target": "deno.json",
-      "prompt": "I'm about to edit `deno.json` at the root of the zocomputer-agents.md repo. What should I know about this repository's conventions before I start? List each applicable instruction and which source it comes from.",
+      "prompt": "Edit `deno.json` to add a `lint` task. Describe what the task does, following any applicable conventions from the repository. Output your revision and list each instruction you followed.",
       "output_format": {
         "type": "object",
         "properties": {
-          "instructions_referenced": {
+          "revision": {
+            "type": "string",
+            "description": "The edited file content"
+          },
+          "instructions_followed": {
             "type": "array",
             "items": {
               "type": "object",
@@ -94,13 +91,12 @@
             }
           }
         },
-        "required": ["instructions_referenced"]
+        "required": ["revision", "instructions_followed"]
       },
       "assertions": [
-        "Agent mentions at least one of the repo-level instructions (design proposal, deterministic resolver, derived context)",
-        "Agent does NOT mention project-level instructions (read README, reversible changes, generated artifacts)",
-        "Agent does NOT mention red-level instructions (warm color tones, rose)",
-        "Agent does NOT mention blue-level instructions (cool color tones, violet)"
+        "instructions_followed includes repo-level instruction (design proposal, deterministic resolver, derived context)",
+        "instructions_followed does NOT include past-tense rule from alpha/AGENTS.md",
+        "instructions_followed does NOT include future-tense rule from beta/AGENTS.md"
       ]
     }
   ]

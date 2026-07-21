@@ -1,39 +1,46 @@
 # Expected instruction recall per test case
 
-## Eval 1 — red-deep-scoping
+## Eval 1 — alpha-past-tense
 
-Target: `examples/demo-project/red/rose.md` Scope: root → project → red
+Target: `examples/demo-project/alpha/entry.md` Scope: root → project → alpha
 
 ### Must appear (ancestor chain)
 
-- Root: "design proposal and Deno prototype", "Keep the resolver deterministic"
-- Project: "Read the project README before editing", "Prefer small, reversible
-  changes"
-- Red: "Prefer warm color tones", "Rose inherits all red conventions"
+- Root: "design proposal", "deterministic resolver", "derived context"
+- Project: "Be concise", "Avoid redundant phrasing", "reversible changes"
+- Alpha: "Use past tense in all output"
 
-### Must NOT appear (sibling, not ancestor)
+### Must NOT appear (sibling)
 
-- Blue: "Prefer cool color tones", "Violet inherits all blue conventions"
+- Beta: "Use future tense in all output"
+
+### Behavioral (compliance)
+
+- `revision` text must use past tense, not future tense
 
 ---
 
-## Eval 2 — blue-deep-scoping
+## Eval 2 — beta-future-tense
 
-Target: `examples/demo-project/blue/violet.md` Scope: root → project → blue
+Target: `examples/demo-project/beta/entry.md` Scope: root → project → beta
 
 ### Must appear (ancestor chain)
 
 - Root: "design proposal", "deterministic", "source-linked"
-- Project: "Read the project README", "reversible changes"
-- Blue: "Prefer cool color tones", "Violet inherits all blue conventions"
+- Project: "Be concise", "reversible changes"
+- Beta: "Use future tense in all output"
 
-### Must NOT appear (sibling, not ancestor)
+### Must NOT appear (sibling)
 
-- Red: "Prefer warm color tones", "Rose inherits all red conventions"
+- Alpha: "Use past tense in all output"
+
+### Behavioral (compliance)
+
+- `revision` text must use future tense, not past tense
 
 ---
 
-## Eval 3 — root-level-only
+## Eval 3 — root-conciseness
 
 Target: `deno.json` Scope: root only
 
@@ -43,6 +50,4 @@ Target: `deno.json` Scope: root only
 
 ### Must NOT appear
 
-- Project: "Read README", "reversible changes", "generated artifacts"
-- Red: any red-level instructions
-- Blue: any blue-level instructions
+- Project / Alpha / Beta: no directory-specific rules

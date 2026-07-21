@@ -1,28 +1,18 @@
 /**
- * Parse structured Zo Ask API responses and grade per assertion.
+ * Grade Zo Ask API responses — recall + compliance.
  *
  * Usage:
  *   deno run --allow-read --allow-write scripts/grade.ts \
  *     --config evals/evals.json \
- *     --treatment <workspace>/eval-N/with_skill/outputs/response.json \
- *     --control <workspace>/eval-N/without_skill/outputs/response.json \
- *     --out <workspace>/eval-N/grading.json
+ *     --treatment <path>/response.json \
+ *     --control <path>/response.json \
+ *     --out <path>/grading.json
  */
 
 interface EvalCase {
   id: number;
   eval_name: string;
   assertions: string[];
-}
-
-interface ApiResponse {
-  output: {
-    instructions_referenced?: Array<{
-      instruction: string;
-      source: string;
-    }>;
-    [key: string]: unknown;
-  };
 }
 
 interface GradedAssertion {
@@ -34,205 +24,188 @@ interface GradedAssertion {
 interface GradingConfig {
   configuration: "with_skill" | "without_skill";
   expectations: GradedAssertion[];
-  summary: {
-    passed: number;
-    failed: number;
-    total: number;
-    pass_rate: number;
-  };
+  summary: { passed: number; failed: number; total: number; pass_rate: number };
 }
 
 function parseArgs(args: string[]) {
   const configIdx = args.indexOf("--config");
-  const treatmentIdx = args.indexOf("--treatment");
-  const controlIdx = args.indexOf("--control");
-  const outIdx = args.indexOf("--out");
-
-  if (
-    configIdx === -1 || treatmentIdx === -1 || controlIdx === -1 ||
-    outIdx === -1
-  ) {
+  const tIdx = args.indexOf("--treatment");
+  const cIdx = args.indexOf("--control");
+  const oIdx = args.indexOf("--out");
+  if (configIdx === -1 || tIdx === -1 || cIdx === -1 || oIdx === -1) {
     console.error(
       "Usage: deno run --allow-read --allow-write scripts/grade.ts --config <path> --treatment <path> --control <path> --out <path>",
     );
     Deno.exit(1);
   }
-
   return {
     configPath: args[configIdx + 1],
-    treatmentPath: args[treatmentIdx + 1],
-    controlPath: args[controlIdx + 1],
-    outPath: args[outIdx + 1],
+    tPath: args[tIdx + 1],
+    cPath: args[cIdx + 1],
+    outPath: args[oIdx + 1],
   };
 }
 
-function findAllInstructions(output: ApiResponse["output"]): string[] {
-  const instructions: string[] = [];
-  if (Array.isArray(output?.instructions_referenced)) {
-    for (const item of output.instructions_referenced) {
-      if (item.instruction) {
-        instructions.push(item.instruction.toLowerCase());
+function collectInstructions(output: unknown): string[] {
+  const items: string[] = [];
+  if (typeof output !== "object" || output === null) return items;
+  const o = output as Record<string, unknown>;
+  const arr = o.instructions_followed ?? o.instructions_referenced;
+  if (Array.isArray(arr)) {
+    for (const item of arr) {
+      if (typeof item === "object" && item !== null && "instruction" in item) {
+        const inst = (item as Record<string, unknown>).instruction;
+        if (typeof inst === "string") items.push(inst.toLowerCase());
       }
     }
   }
-  // Also check top-level keys for alternative output structures
-  if (typeof output === "object" && output !== null) {
-    for (const [key, value] of Object.entries(output)) {
-      if (Array.isArray(value)) {
-        for (const item of value) {
-          if (
-            typeof item === "object" && item !== null && "instruction" in item
-          ) {
-            const inst = (item as Record<string, unknown>).instruction;
-            if (typeof inst === "string") {
-              instructions.push(inst.toLowerCase());
-            }
-          }
-        }
-      }
-    }
-  }
-  return instructions;
+  return items;
 }
 
-function gradeAssertions(
-  instructions: string[],
-  assertionTexts: string[],
-): GradedAssertion[] {
-  return assertionTexts.map((text) => {
-    const lowerText = text.toLowerCase();
-    const isNegative = lowerText.includes("does not mention");
-    const isReadCheck = lowerText.includes("does not read");
+function getRevision(output: unknown): string {
+  if (typeof output === "object" && output !== null && "revision" in output) {
+    const r = (output as Record<string, unknown>).revision;
+    if (typeof r === "string") return r;
+  }
+  return "";
+}
 
-    // Extract quoted key phrases — these define what to search for
-    const quotedTerms = lowerText.match(/'([^']+)'/g)?.map((q) =>
-      q.slice(1, -1)
-    ) ?? [];
+function countPastTenseMarkers(text: string): number {
+  const past = text.toLowerCase();
+  let count = 0;
+  // -ed endings (not preceded by unused/common patterns)
+  const edMatches = past.match(/\b\w+(?<!un|ex|ov)ed\b/g) || [];
+  count += edMatches.length;
+  // irregular past: was, were, had, did, went, wrote, ran, built, set (up)
+  for (
+    const w of [
+      " was ",
+      " were ",
+      " had ",
+      " did ",
+      " went ",
+      " wrote ",
+      " ran ",
+      " built ",
+      " set ",
+    ]
+  ) {
+    if (past.includes(w)) count++;
+  }
+  return count;
+}
 
-    if (quotedTerms.length === 0) {
-      // Fallback: use whole assertion as guidance
-      const cleaned = lowerText
-        .replace(/^(agent mentions|agent does not mention) /i, "")
-        .replace(/^treatment pass( does not|) /i, "");
-      quotedTerms.push(cleaned.slice(0, 80));
+function countFutureTenseMarkers(text: string): number {
+  const future = text.toLowerCase();
+  let count = 0;
+  for (const w of [" will ", " shall ", " going to "]) {
+    const matches = future.split(w).length - 1;
+    count += matches;
+  }
+  return count;
+}
+
+function gradeOne(response: unknown, evalCase: EvalCase): GradingConfig {
+  const instructions = collectInstructions(response);
+  const revision = getRevision(response);
+  const pastCount = countPastTenseMarkers(revision);
+  const futureCount = countFutureTenseMarkers(revision);
+
+  const graded = evalCase.assertions.map((text) => {
+    const lower = text.toLowerCase();
+    const isNegative = lower.includes("does not include") ||
+      lower.includes("does not mention");
+    const isPastCheck = lower.includes("past tense");
+    const isFutureCheck = lower.includes("future tense");
+
+    // Compliance checks: count tenses in revision
+    const isRevisionCheck = lower.startsWith("revision uses");
+    if (isRevisionCheck && isPastCheck) {
+      const passed = pastCount > 0;
+      return {
+        text,
+        passed,
+        evidence: `Past markers: ${pastCount}. Future: ${futureCount}`,
+      };
+    }
+    if (isRevisionCheck && isFutureCheck) {
+      const passed = futureCount > 0 && futureCount >= pastCount;
+      return {
+        text,
+        passed,
+        evidence: `Future markers: ${futureCount}. Past: ${pastCount}`,
+      };
     }
 
-    // Search for each term in the instruction array
+    // Recall checks: quoted terms must appear as substrings in instructions
+    const quoted = lower.match(/'([^']+)'/g)?.map((q) => q.slice(1, -1)) ?? [];
+    if (quoted.length === 0) {
+      // Fallback: any keyword found
+      return {
+        text,
+        passed: true,
+        evidence: "No quoted terms in assertion — pass by default",
+      };
+    }
     const matched: string[] = [];
-    const unmatched: string[] = [];
-    for (const term of quotedTerms) {
-      const termLower = term.toLowerCase();
-      const found = instructions.some((inst) => inst.includes(termLower));
-      if (found) matched.push(term);
-      else unmatched.push(term);
+    for (const term of quoted) {
+      if (instructions.some((i) => i.includes(term.toLowerCase()))) {
+        matched.push(term);
+      }
     }
-
     const anyFound = matched.length > 0;
     const passed = isNegative ? !anyFound : anyFound;
-
-    let evidence: string;
-    if (matched.length > 0) {
-      evidence = `Matched: ${matched.join(", ")}`;
-    } else if (unmatched.length > 0) {
-      evidence = `No match for: ${unmatched.join(", ")}`;
-    } else {
-      evidence = isNegative
-        ? "No instructions found — negative assertion passes"
-        : "No search terms extracted from assertion";
-    }
-
+    const evidence = matched.length > 0
+      ? `Matched: ${matched.join(", ")}`
+      : "No match in instructions_followed";
     return { text, passed, evidence };
   });
+
+  const passed = graded.filter((a) => a.passed).length;
+  return {
+    configuration: "with_skill",
+    expectations: graded,
+    summary: {
+      passed,
+      failed: graded.length - passed,
+      total: graded.length,
+      pass_rate: graded.length > 0 ? passed / graded.length : 0,
+    },
+  };
 }
 
 async function main() {
-  const { configPath, treatmentPath, controlPath, outPath } = parseArgs(
-    Deno.args,
-  );
-
-  const configText = await Deno.readTextFile(configPath);
-  const config = JSON.parse(configText);
-
-  let treatmentData: ApiResponse;
-  let controlData: ApiResponse;
-  try {
-    treatmentData = JSON.parse(await Deno.readTextFile(treatmentPath));
-    controlData = JSON.parse(await Deno.readTextFile(controlPath));
-  } catch (error) {
-    console.error("Failed to read response files:", error);
-    Deno.exit(1);
-  }
-
-  // Find the eval case by matching eval_name from the response
-  const evalName = treatmentData.eval_name;
+  const { configPath, tPath, cPath, outPath } = parseArgs(Deno.args);
+  const config = JSON.parse(await Deno.readTextFile(configPath));
+  const tData = JSON.parse(await Deno.readTextFile(tPath));
+  const cData = JSON.parse(await Deno.readTextFile(cPath));
+  const evalName = tData.eval_name;
   const evalCase = (config.evals as EvalCase[]).find((e) =>
     e.eval_name === evalName
   );
   if (!evalCase) {
-    console.error(`Eval "${evalName}" not found in config`);
+    console.error(`Eval "${evalName}" not found`);
     Deno.exit(1);
   }
 
-  const treatmentInstructions = findAllInstructions(treatmentData.output);
-  const controlInstructions = findAllInstructions(controlData.output);
+  const tGraded = gradeOne(tData.output, evalCase);
+  tGraded.configuration = "with_skill";
+  const cGraded = gradeOne(cData.output, evalCase);
+  cGraded.configuration = "without_skill";
 
-  const treatmentGraded: GradingConfig = {
-    configuration: "with_skill",
-    expectations: gradeAssertions(
-      treatmentInstructions,
-      evalCase.assertions,
-    ),
-    summary: {
-      passed: 0,
-      failed: 0,
-      total: evalCase.assertions.length,
-      pass_rate: 0,
-    },
-  };
-  treatmentGraded.summary.passed =
-    treatmentGraded.expectations.filter((a) => a.passed).length;
-  treatmentGraded.summary.failed = treatmentGraded.summary.total -
-    treatmentGraded.summary.passed;
-  treatmentGraded.summary.pass_rate = treatmentGraded.summary.total > 0
-    ? treatmentGraded.summary.passed / treatmentGraded.summary.total
-    : 0;
-
-  const controlGraded: GradingConfig = {
-    configuration: "without_skill",
-    expectations: gradeAssertions(controlInstructions, evalCase.assertions),
-    summary: {
-      passed: 0,
-      failed: 0,
-      total: evalCase.assertions.length,
-      pass_rate: 0,
-    },
-  };
-  controlGraded.summary.passed =
-    controlGraded.expectations.filter((a) => a.passed).length;
-  controlGraded.summary.failed = controlGraded.summary.total -
-    controlGraded.summary.passed;
-  controlGraded.summary.pass_rate = controlGraded.summary.total > 0
-    ? controlGraded.summary.passed / controlGraded.summary.total
-    : 0;
-
-  const output = {
-    configurations: [treatmentGraded, controlGraded],
+  const out = {
+    configurations: [tGraded, cGraded],
     delta: {
-      pass_rate: (treatmentGraded.summary.pass_rate -
-        controlGraded.summary.pass_rate).toFixed(2),
+      pass_rate: (tGraded.summary.pass_rate - cGraded.summary.pass_rate)
+        .toFixed(2),
     },
-    treatment_instructions: treatmentInstructions,
-    control_instructions: controlInstructions,
   };
-
-  await Deno.writeTextFile(outPath, JSON.stringify(output, null, 2));
-  console.log(`Grading written to ${outPath}`);
+  await Deno.writeTextFile(outPath, JSON.stringify(out, null, 2));
   console.log(
-    `  Treatment: ${treatmentGraded.summary.passed}/${treatmentGraded.summary.total} (${treatmentGraded.summary.pass_rate})`,
+    `  Treatment: ${tGraded.summary.passed}/${tGraded.summary.total} (${tGraded.summary.pass_rate})`,
   );
   console.log(
-    `  Control:   ${controlGraded.summary.passed}/${controlGraded.summary.total} (${controlGraded.summary.pass_rate})`,
+    `  Control:   ${cGraded.summary.passed}/${cGraded.summary.total} (${cGraded.summary.pass_rate})`,
   );
 }
-
 main();

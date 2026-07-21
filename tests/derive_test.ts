@@ -4,42 +4,48 @@ import { derive } from "../src/derive.ts";
 const root = new URL("../", import.meta.url).pathname;
 
 Deno.test("derives AGENTS.md from broad to narrow scope", async () => {
-  const result = await derive(root, "examples/demo-project/red/rose.md");
+  const result = await derive(
+    root,
+    "examples/demo-project/alpha/entry.md",
+  );
 
-  assertEquals(result.target, "examples/demo-project/red/rose.md");
+  assertEquals(result.target, "examples/demo-project/alpha/entry.md");
   assertEquals(result.targetExists, true);
   assertEquals(result.sources.map((source) => source.path), [
     "AGENTS.md",
     "examples/demo-project/AGENTS.md",
-    "examples/demo-project/red/AGENTS.md",
+    "examples/demo-project/alpha/AGENTS.md",
   ]);
-  assertStringIncludes(
-    result.context,
-    "Read the project README before editing.",
-  );
-  assertStringIncludes(result.context, "Prefer warm color tones.");
+  assertStringIncludes(result.context, "Be concise.");
+  assertStringIncludes(result.context, "Use past tense in all output.");
   assertEquals(result.diagnostics, []);
 });
 
 Deno.test("excludes sibling AGENTS.md from non-ancestor directories", async () => {
-  const result = await derive(root, "examples/demo-project/red/rose.md");
+  const result = await derive(
+    root,
+    "examples/demo-project/alpha/entry.md",
+  );
 
   assertEquals(result.sources.length, 3);
   const paths = result.sources.map((s) => s.path);
-  assertEquals(paths.includes("examples/demo-project/blue/AGENTS.md"), false);
   assertEquals(
-    result.context.includes("Prefer cool color tones."),
+    paths.includes("examples/demo-project/beta/AGENTS.md"),
     false,
   );
+  assertEquals(result.context.includes("future tense"), false);
 });
 
 Deno.test("reports a missing target without inventing sources", async () => {
-  const result = await derive(root, "examples/demo-project/red/missing.md");
+  const result = await derive(
+    root,
+    "examples/demo-project/alpha/missing.md",
+  );
 
   assertEquals(result.targetExists, false);
   assertEquals(result.sources, []);
   assertEquals(result.diagnostics, [
-    "Target does not exist: examples/demo-project/red/missing.md",
+    "Target does not exist: examples/demo-project/alpha/missing.md",
     "No applicable AGENTS.md files found.",
   ]);
 });

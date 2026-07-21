@@ -1,7 +1,7 @@
 {
   "tasks": {
     "test": "deno test --allow-read",
-    "demo": "deno run --allow-read src/derive.ts examples/demo-project/red/rose.md"
+    "demo": "deno run --allow-read src/derive.ts examples/demo-project/alpha/entry.md"
   },
   "compilerOptions": {
     "strict": true,

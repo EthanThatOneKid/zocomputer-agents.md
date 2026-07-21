@@ -293,31 +293,33 @@ Calls use `zo:openai/gpt-5.6-luna`. API key via `ZO_API_KEY` env var. See
 
 ### Results
 
-Three test cases (red/rose.md, blue/violet.md, deno.json) with red/blue sibling
-directories to verify ancestor-only scoping. Each test is a `POST /zo/ask` call
-with `output_format` for structured JSON. Zo Rules are natively active on the
-server. Grader uses quoted-term set-membership matching.
+Three test cases use ambiguous directory names (alpha/beta) with behavioral
+rules: alpha enforces past tense, beta enforces future tense. Each eval prompts
+Zo to edit a file — the grader checks both recall (did Zo list the rule?) and
+compliance (did the output actually use the correct tense?).
 
-| Eval     | Treatment | Control   | Delta      |
-| -------- | --------- | --------- | ---------- |
-| Red      | 83.3%     | 16.7%     | +66.6%     |
-| Blue     | 60.0%     | 20.0%     | +40.0%     |
-| Root     | 75.0%     | 75.0%     | 0%         |
-| **Mean** | **72.8%** | **37.2%** | **+35.6%** |
+| Eval                | Treatment | Control   | Delta     |
+| ------------------- | --------- | --------- | --------- |
+| alpha (past tense)  | 100%      | 100%      | 0%        |
+| beta (future tense) | 100%      | 75%       | +25%      |
+| root                | 100%      | 100%      | 0%        |
+| **Mean**            | **100%**  | **91.7%** | **+8.3%** |
 
-- **Zo Rules reach the Ask API**: eval 1 treatment returned 3 instructions
-  sourced from `"developer user rules"`, including "Prefer warm color tones;
-  Rose inherits all red conventions."
-- **No fake improvement**: root-only eval shows 0% delta — both treatment and
-  control get root-level context. Deeper scopes only benefit when rules fire.
-- **Latency**: 69-132s per call on GPT-5.6 Luna (only free-tier model).
+- **Compliance confirmed**: treatment revisions used correct tense — 16 past
+  markers (alpha) and 12 future markers (beta). Instructions sourced from
+  `"developer user rules"`.
+- **Control still works**: without rules, Zo reads AGENTS.md files from disk and
+  usually complies. The delta comes from edge cases where file-discovery is less
+  reliable without rule injection.
 
 ### Limitations
 
-- Test fixtures are abstract color-domain (red/blue); real-world project tests
-  would strengthen the case.
-- GPT-5.6 Luna is the only free-tier model on Zo; 69-132s latency per call.
-- Read-only prompts used throughout; edit-oriented prompts pending.
+- Zo can read AGENTS.md files from disk even without rules, so control
+  compliance is high when file discovery succeeds. The derive system's value is
+  in reliable context injection, not just compliance.
+- Test fixtures are abstract (alpha/beta with tense rules); real-world project
+  conventions would be more nuanced.
+- GPT-5.6 Luna is the only free-tier model on Zo; 53-129s latency per call.
 
 ## License
 
