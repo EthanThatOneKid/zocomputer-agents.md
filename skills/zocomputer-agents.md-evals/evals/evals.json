@@ -5,59 +5,103 @@
       "id": 1,
       "eval_name": "red-deep-scoping",
       "target": "examples/demo-project/red/rose.md",
-      "prompt": "Look at `examples/demo-project/red/rose.md`. What project conventions, instructions, or rules should I know before working with this file? What am I expected to do after making changes?",
-      "expected_sources": [
-        "AGENTS.md",
-        "examples/demo-project/AGENTS.md",
-        "examples/demo-project/red/AGENTS.md"
-      ],
+      "prompt": "Look at `examples/demo-project/red/rose.md`. What project conventions, instructions, or rules should I know before working with this file? For each one you find, state the instruction and which directory/source it comes from.",
+      "output_format": {
+        "type": "object",
+        "properties": {
+          "instructions_referenced": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "instruction": { "type": "string" },
+                "source": { "type": "string" }
+              },
+              "required": ["instruction", "source"]
+            }
+          }
+        },
+        "required": ["instructions_referenced"]
+      },
       "assertions": [
         "Agent mentions the repo-level instruction: 'Keep the resolver deterministic, inspectable, and source-linked'",
         "Agent mentions the project-level instruction: 'Read the project README before editing'",
         "Agent mentions the project-level instruction: 'Prefer small, reversible changes'",
         "Agent mentions the red-level instruction: 'Prefer warm color tones'",
         "Agent mentions the red-level instruction: 'Rose inherits all red conventions'",
-        "Agent does NOT mention blue-level instructions (cool tones, violet)",
-        "Treatment pass does NOT read any AGENTS.md files via the read_file tool"
-      ],
-      "files": []
+        "Agent does NOT mention blue-level instructions (cool tones, violet)"
+      ]
     },
     {
       "id": 2,
       "eval_name": "blue-deep-scoping",
       "target": "examples/demo-project/blue/violet.md",
-      "prompt": "Look at `examples/demo-project/blue/violet.md`. What project conventions, instructions, or rules should I know before working with this file? Are there any other directories nearby with different rules?",
-      "expected_sources": [
-        "AGENTS.md",
-        "examples/demo-project/AGENTS.md",
-        "examples/demo-project/blue/AGENTS.md"
-      ],
+      "prompt": "Look at `examples/demo-project/blue/violet.md`. What project conventions, instructions, or rules should I know before working with this file? For each one, state the instruction and which directory/source it comes from. Are there any other directories nearby with different rules that do not apply here?",
+      "output_format": {
+        "type": "object",
+        "properties": {
+          "instructions_referenced": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "instruction": { "type": "string" },
+                "source": { "type": "string" }
+              },
+              "required": ["instruction", "source"]
+            }
+          },
+          "sibling_instructions_excluded": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "instruction": { "type": "string" },
+                "source": { "type": "string" },
+                "reason_excluded": { "type": "string" }
+              },
+              "required": ["instruction", "source", "reason_excluded"]
+            }
+          }
+        },
+        "required": ["instructions_referenced", "sibling_instructions_excluded"]
+      },
       "assertions": [
-        "Agent mentions the repo-level instruction about the resolver being deterministic",
+        "Agent mentions the repo-level instruction: 'Keep the resolver deterministic, inspectable, and source-linked'",
         "Agent mentions the project-level instruction: 'Read the project README before editing'",
         "Agent mentions the blue-level instruction: 'Prefer cool color tones'",
         "Agent mentions the blue-level instruction: 'Violet inherits all blue conventions'",
-        "Agent does NOT mention red-level instructions (warm tones, rose)",
-        "Treatment pass does NOT read any AGENTS.md files via the read_file tool"
-      ],
-      "files": []
+        "Agent does NOT mention red-level instructions (warm tones, rose)"
+      ]
     },
     {
       "id": 3,
       "eval_name": "root-level-only",
       "target": "deno.json",
-      "prompt": "I'm about to edit `deno.json` at the root of the zocomputer-agents.md repo. What should I know about this repository's conventions before I start?",
-      "expected_sources": [
-        "AGENTS.md"
-      ],
+      "prompt": "I'm about to edit `deno.json` at the root of the zocomputer-agents.md repo. What should I know about this repository's conventions before I start? List each applicable instruction and which source it comes from.",
+      "output_format": {
+        "type": "object",
+        "properties": {
+          "instructions_referenced": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "instruction": { "type": "string" },
+                "source": { "type": "string" }
+              },
+              "required": ["instruction", "source"]
+            }
+          }
+        },
+        "required": ["instructions_referenced"]
+      },
       "assertions": [
         "Agent mentions at least one of the repo-level instructions (design proposal, deterministic resolver, derived context)",
         "Agent does NOT mention project-level instructions (read README, reversible changes, generated artifacts)",
         "Agent does NOT mention red-level instructions (warm color tones, rose)",
-        "Agent does NOT mention blue-level instructions (cool color tones, violet)",
-        "Treatment pass does NOT read any AGENTS.md files via the read_file tool"
-      ],
-      "files": []
+        "Agent does NOT mention blue-level instructions (cool color tones, violet)"
+      ]
     }
   ]
 }

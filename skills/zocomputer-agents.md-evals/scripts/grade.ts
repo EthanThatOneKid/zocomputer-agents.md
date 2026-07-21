@@ -1,156 +1,223 @@
 /**
- * Grade a single eval run by checking assertions against the agent's response.
+ * Parse structured Zo Ask API responses and grade per assertion.
  *
- * Usage: deno run --allow-read scripts/grade.ts \
- *   --treatment <path/to/treatment/response.md> \
- *   --control <path/to/control/response.md> \
- *   --assertions '["phrase 1","phrase 2"]' \
- *   --out <path/to/grading.json>
+ * Usage:
+ *   deno run --allow-read --allow-write scripts/grade.ts \
+ *     --config evals/evals.json \
+ *     --treatment <workspace>/eval-N/with_skill/outputs/response.json \
+ *     --control <workspace>/eval-N/without_skill/outputs/response.json \
+ *     --out <workspace>/eval-N/grading.json
  */
 
-interface Assertion {
+interface EvalCase {
+  id: number;
+  eval_name: string;
+  assertions: string[];
+}
+
+interface ApiResponse {
+  output: {
+    instructions_referenced?: Array<{
+      instruction: string;
+      source: string;
+    }>;
+    [key: string]: unknown;
+  };
+}
+
+interface GradedAssertion {
   text: string;
   passed: boolean;
   evidence: string;
 }
 
-interface GradingResult {
+interface GradingConfig {
   configuration: "with_skill" | "without_skill";
-  expectations: Assertion[];
+  expectations: GradedAssertion[];
   summary: {
     passed: number;
     failed: number;
     total: number;
     pass_rate: number;
   };
-  file_reads_detected: boolean;
 }
 
-async function readTranscript(path: string): Promise<string> {
-  try {
-    return await Deno.readTextFile(path);
-  } catch {
-    return "";
+function parseArgs(args: string[]) {
+  const configIdx = args.indexOf("--config");
+  const treatmentIdx = args.indexOf("--treatment");
+  const controlIdx = args.indexOf("--control");
+  const outIdx = args.indexOf("--out");
+
+  if (
+    configIdx === -1 || treatmentIdx === -1 || controlIdx === -1 ||
+    outIdx === -1
+  ) {
+    console.error(
+      "Usage: deno run --allow-read --allow-write scripts/grade.ts --config <path> --treatment <path> --control <path> --out <path>",
+    );
+    Deno.exit(1);
   }
+
+  return {
+    configPath: args[configIdx + 1],
+    treatmentPath: args[treatmentIdx + 1],
+    controlPath: args[controlIdx + 1],
+    outPath: args[outIdx + 1],
+  };
+}
+
+function findAllInstructions(output: ApiResponse["output"]): string[] {
+  const instructions: string[] = [];
+  if (Array.isArray(output?.instructions_referenced)) {
+    for (const item of output.instructions_referenced) {
+      if (item.instruction) {
+        instructions.push(item.instruction.toLowerCase());
+      }
+    }
+  }
+  // Also check top-level keys for alternative output structures
+  if (typeof output === "object" && output !== null) {
+    for (const [key, value] of Object.entries(output)) {
+      if (Array.isArray(value)) {
+        for (const item of value) {
+          if (
+            typeof item === "object" && item !== null && "instruction" in item
+          ) {
+            const inst = (item as Record<string, unknown>).instruction;
+            if (typeof inst === "string") {
+              instructions.push(inst.toLowerCase());
+            }
+          }
+        }
+      }
+    }
+  }
+  return instructions;
 }
 
 function gradeAssertions(
-  transcript: string,
-  assertions: string[],
-): Assertion[] {
-  const lowerTranscript = transcript.toLowerCase();
-  return assertions.map((text) => {
-    const keywords = text.replace(/^Agent (mentions|does NOT mention) /i, "")
-      .replace(/^Treatment pass /i, "");
-    const searchTerms = extractSearchTerms(keywords);
-    const found = searchTerms.some((term) =>
-      lowerTranscript.includes(term.toLowerCase())
-    );
+  instructions: string[],
+  assertionTexts: string[],
+): GradedAssertion[] {
+  return assertionTexts.map((text) => {
+    const lowerText = text.toLowerCase();
+    const isNegative = lowerText.includes("does not mention") ||
+      lowerText.includes("does not read");
 
-    const isNegative = text.toLowerCase().includes("does not mention") ||
-      text.toLowerCase().includes("does not read");
+    // Extract key phrases from assertion
+    const quoted = lowerText.match(/'([^']+)'/g);
+    const searchTerms = quoted
+      ? quoted.map((q) => q.slice(1, -1))
+      : lowerText.replace(/^agent (mentions|does not mention) /i, "")
+        .replace(/treatment pass /i, "")
+        .split(/\s+/)
+        .filter((w) => w.length > 4);
+
+    const found = searchTerms.some((term) =>
+      instructions.some((inst) => inst.includes(term)) ||
+      lowerText.includes(term)
+    );
 
     const passed = isNegative ? !found : found;
     const evidence = found
-      ? `Found match for: ${
-        searchTerms.filter((t) => lowerTranscript.includes(t.toLowerCase()))
-          .join(", ")
+      ? `Found instruction matching: ${
+        searchTerms.filter((t) => instructions.some((i) => i.includes(t))).join(
+          ", ",
+        )
       }`
-      : "No match found in transcript";
+      : "No matching instruction found in response";
 
     return { text, passed, evidence };
   });
 }
 
-function extractSearchTerms(phrase: string): string[] {
-  const quoted = phrase.match(/'([^']+)'/g);
-  if (quoted) {
-    return quoted.map((q) => q.slice(1, -1));
-  }
-  const words = phrase.split(/\s+/).filter((w) => w.length > 4);
-  return words.length > 0 ? [words.join(" ")] : [phrase];
-}
-
-function detectFileReads(transcript: string): boolean {
-  const patterns = [
-    /read.*AGENTS\.md/i,
-    /open.*AGENTS\.md/i,
-    /Read.*AGENTS\.md/i,
-    /read_file.*agents/i,
-  ];
-  return patterns.some((p) => p.test(transcript));
-}
-
 async function main() {
-  const args = Deno.args;
-  const treatmentIdx = args.indexOf("--treatment");
-  const controlIdx = args.indexOf("--control");
-  const assertionsIdx = args.indexOf("--assertions");
-  const outIdx = args.indexOf("--out");
+  const { configPath, treatmentPath, controlPath, outPath } = parseArgs(
+    Deno.args,
+  );
 
-  if (
-    treatmentIdx === -1 || controlIdx === -1 || assertionsIdx === -1 ||
-    outIdx === -1
-  ) {
-    console.error(
-      "Usage: deno run --allow-read scripts/grade.ts --treatment <path> --control <path> --assertions '<json>' --out <path>",
-    );
+  const configText = await Deno.readTextFile(configPath);
+  const config = JSON.parse(configText);
+
+  let treatmentData: ApiResponse;
+  let controlData: ApiResponse;
+  try {
+    treatmentData = JSON.parse(await Deno.readTextFile(treatmentPath));
+    controlData = JSON.parse(await Deno.readTextFile(controlPath));
+  } catch (error) {
+    console.error("Failed to read response files:", error);
     Deno.exit(1);
   }
 
-  const treatmentPath = args[treatmentIdx + 1];
-  const controlPath = args[controlIdx + 1];
-  const assertions: string[] = JSON.parse(args[assertionsIdx + 1]);
-  const outPath = args[outIdx + 1];
+  // Find the eval case by matching eval_name from the response
+  const evalName = treatmentData.eval_name;
+  const evalCase = (config.evals as EvalCase[]).find((e) =>
+    e.eval_name === evalName
+  );
+  if (!evalCase) {
+    console.error(`Eval "${evalName}" not found in config`);
+    Deno.exit(1);
+  }
 
-  const treatmentTranscript = await readTranscript(treatmentPath);
-  const controlTranscript = await readTranscript(controlPath);
+  const treatmentInstructions = findAllInstructions(treatmentData.output);
+  const controlInstructions = findAllInstructions(controlData.output);
 
-  const treatmentResults: GradingResult = {
+  const treatmentGraded: GradingConfig = {
     configuration: "with_skill",
-    expectations: gradeAssertions(treatmentTranscript, assertions),
-    summary: { passed: 0, failed: 0, total: assertions.length, pass_rate: 0 },
-    file_reads_detected: detectFileReads(treatmentTranscript),
+    expectations: gradeAssertions(
+      treatmentInstructions,
+      evalCase.assertions,
+    ),
+    summary: {
+      passed: 0,
+      failed: 0,
+      total: evalCase.assertions.length,
+      pass_rate: 0,
+    },
   };
-  treatmentResults.summary.passed =
-    treatmentResults.expectations.filter((a) => a.passed).length;
-  treatmentResults.summary.failed = treatmentResults.summary.total -
-    treatmentResults.summary.passed;
-  treatmentResults.summary.pass_rate = treatmentResults.summary.total > 0
-    ? treatmentResults.summary.passed / treatmentResults.summary.total
+  treatmentGraded.summary.passed =
+    treatmentGraded.expectations.filter((a) => a.passed).length;
+  treatmentGraded.summary.failed = treatmentGraded.summary.total -
+    treatmentGraded.summary.passed;
+  treatmentGraded.summary.pass_rate = treatmentGraded.summary.total > 0
+    ? treatmentGraded.summary.passed / treatmentGraded.summary.total
     : 0;
 
-  const controlResults: GradingResult = {
+  const controlGraded: GradingConfig = {
     configuration: "without_skill",
-    expectations: gradeAssertions(controlTranscript, assertions),
-    summary: { passed: 0, failed: 0, total: assertions.length, pass_rate: 0 },
-    file_reads_detected: detectFileReads(controlTranscript),
+    expectations: gradeAssertions(controlInstructions, evalCase.assertions),
+    summary: {
+      passed: 0,
+      failed: 0,
+      total: evalCase.assertions.length,
+      pass_rate: 0,
+    },
   };
-  controlResults.summary.passed =
-    controlResults.expectations.filter((a) => a.passed).length;
-  controlResults.summary.failed = controlResults.summary.total -
-    controlResults.summary.passed;
-  controlResults.summary.pass_rate = controlResults.summary.total > 0
-    ? controlResults.summary.passed / controlResults.summary.total
+  controlGraded.summary.passed =
+    controlGraded.expectations.filter((a) => a.passed).length;
+  controlGraded.summary.failed = controlGraded.summary.total -
+    controlGraded.summary.passed;
+  controlGraded.summary.pass_rate = controlGraded.summary.total > 0
+    ? controlGraded.summary.passed / controlGraded.summary.total
     : 0;
 
   const output = {
-    configurations: [treatmentResults, controlResults],
+    configurations: [treatmentGraded, controlGraded],
     delta: {
-      pass_rate: (treatmentResults.summary.pass_rate -
-        controlResults.summary.pass_rate).toFixed(2),
-      treatment_reads_agents: treatmentResults.file_reads_detected,
-      control_reads_agents: controlResults.file_reads_detected,
+      pass_rate: (treatmentGraded.summary.pass_rate -
+        controlGraded.summary.pass_rate).toFixed(2),
     },
+    treatment_instructions: treatmentInstructions,
+    control_instructions: controlInstructions,
   };
 
   await Deno.writeTextFile(outPath, JSON.stringify(output, null, 2));
   console.log(`Grading written to ${outPath}`);
   console.log(
-    `Treatment: ${treatmentResults.summary.passed}/${treatmentResults.summary.total} (${treatmentResults.summary.pass_rate}) reads_agents=${treatmentResults.file_reads_detected}`,
+    `  Treatment: ${treatmentGraded.summary.passed}/${treatmentGraded.summary.total} (${treatmentGraded.summary.pass_rate})`,
   );
   console.log(
-    `Control:   ${controlResults.summary.passed}/${controlResults.summary.total} (${controlResults.summary.pass_rate}) reads_agents=${controlResults.file_reads_detected}`,
+    `  Control:   ${controlGraded.summary.passed}/${controlGraded.summary.total} (${controlGraded.summary.pass_rate})`,
   );
 }
 

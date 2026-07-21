@@ -319,22 +319,43 @@ red/blue sibling directories to test scoping boundaries.
 
 - **Zo Rules reach subagents via `zo_list_rules`**: the red eval treatment
   subagent called `zo_list_rules`, discovered all 3 ancestor rules, and scored
-  100% without reading any `AGENTS.md` files. This proves the derive pipeline
-  works end-to-end when rules are discoverable.
+  100% without reading any `AGENTS.md` files.
 - **Inconsistency without tool discovery**: the blue eval treatment subagent did
-  not use `zo_list_rules` and scored 16.7% — blind without file reads. Success
-  depends on whether the subagent discovers the MCP tool.
-- **Sibling isolation confirmed**: both evals correctly excluded non-ancestor
-  sibling instructions (red rules for blue target, blue rules for red target).
+  not use `zo_list_rules` and scored 16.7%. Success depends on whether the
+  subagent discovers the MCP tool.
+
+### Results (iteration 3) — Zo Ask API
+
+Each test case is a `POST /zo/ask` API call with `output_format` for structured
+responses. Zo Rules are natively active on the server.
+
+| Eval | Treatment | Control | Key difference                                                               |
+| ---- | --------- | ------- | ---------------------------------------------------------------------------- |
+| Red  | 83.3%     | 83.3%   | Treatment used "user rule" as source (Zo Rule)                               |
+| Blue | 80.0%     | 80.0%   | Treatment listed blue rules from "user rule for examples/demo-project/blue/" |
+| Root | 25.0%     | 25.0%   | Grader keyword matching too strict for negative assertions                   |
+
+#### Key findings (iteration 3)
+
+- **Zo Rules reach the Ask API**: eval 2 treatment explicitly sourced
+  instructions from "user rule for examples/demo-project/blue/" and "user rules
+  for examples/demo-project/red/". Rules fire on the API path.
+- **Structured output works**: `output_format` forces JSON responses with
+  `instructions_referenced[]` arrays — machine-checkable grading.
+- **Workspace mismatch**: the API uses a different workspace checkout than
+  `/root/zocomputer-agents.md/`. Old wiki fixtures still present, causing stale
+  file reads. Next iteration should ensure workspace is in sync.
+- **Grader refinement needed**: keyword matching on structured JSON has false
+  positives (empty evidence matching) and false negatives (negative assertions
+  with empty arrays).
 
 ### Limitations
 
 - Iteration 1: same agent authored both passes; iteration 2 used independent
-  subagents.
-- Zo Rules reach subagents only when discovered via `zo_list_rules`;
-  auto-injection would make the pipeline reliable.
-- Read-only prompts were used; edit-oriented prompts would exercise post-change
-  instructions more realistically.
+  subagents; iteration 3 used Zo Ask API calls.
+- Zo Ask API workspace checkout may differ from the derive source checkout.
+- Negative assertions (`does NOT mention`) need semantic, not keyword, grading.
+- Read-only prompts used throughout; edit-oriented prompts pending.
 
 ## Repository layout
 
