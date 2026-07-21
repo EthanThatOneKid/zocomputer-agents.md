@@ -260,10 +260,10 @@ Short version:
 
 ## Evaluation
 
-The skill at
-[`skills/zocomputer-agents.md-evals/`](./skills/zocomputer-agents.md-evals/)
-runs a treatment-vs-control experiment to measure whether derived Zo Rules
-surface `AGENTS.md` instructions without requiring manual file discovery.
+A treatment-vs-control experiment measured whether derived Zo Rules surface
+`AGENTS.md` instructions without requiring manual file discovery. Each test case
+is a `POST /zo/ask` call with `output_format` for structured JSON. Zo Rules are
+natively active on the server.
 
 ### Experiment design
 
@@ -288,8 +288,7 @@ surface `AGENTS.md` instructions without requiring manual file discovery.
 7. Grade both passes: `scripts/grade.ts` compares `instructions_referenced[]`
    arrays via quoted-term set-membership matching.
 
-Calls use `zo:openai/gpt-5.6-luna`. API key via `ZO_API_KEY` env var. See
-`skills/zocomputer-agents.md-evals/SKILL.md` for full workflow.
+Calls use `zo:openai/gpt-5.6-luna`. API key via `ZO_API_KEY` env var.
 
 ### Results
 
