@@ -53,16 +53,16 @@ flowchart TB
 
 ## Example
 
-Suppose the task touches `examples/demo-project/red/rose.md`:
+Suppose the task touches `examples/demo-project/alpha/entry.md`:
 
 ```text
 repository/
 ├── AGENTS.md
 └── examples/demo-project/
     ├── AGENTS.md
-    └── red/
+    └── alpha/
         ├── AGENTS.md
-        └── rose.md   ← task target
+        └── entry.md   ← task target
 ```
 
 The resolver loads the applicable files from broadest to narrowest scope:
@@ -70,8 +70,8 @@ The resolver loads the applicable files from broadest to narrowest scope:
 ```mermaid
 flowchart LR
     R[repository/AGENTS.md] --> P[demo-project/AGENTS.md]
-    P --> D[red/AGENTS.md]
-    D --> O[Resolved context for rose.md]
+    P --> D[alpha/AGENTS.md]
+    D --> O[Resolved context for entry.md]
 ```
 
 The user-facing result could look like this:
@@ -79,14 +79,13 @@ The user-facing result could look like this:
 ```text
 ACTIVE PROJECT CONTEXT
 
-Scope: examples/demo-project/red/**
+Scope: examples/demo-project/alpha/**
 Source: AGENTS.md hierarchy (3 files)
 Updated: when sources change
 
-✓ Read README.md before editing          ← AGENTS.md:3
-✓ Prefer small, reversible changes       ← examples/demo-project/AGENTS.md:4
-✓ Prefer warm color tones                ← examples/demo-project/red/AGENTS.md:1
-✓ Rose inherits all red conventions       ← examples/demo-project/red/AGENTS.md:2
+✓ Be concise. Avoid redundant phrasing.   ← AGENTS.md:3
+✓ Prefer small, reversible changes        ← examples/demo-project/AGENTS.md:4
+✓ Use past tense in all output            ← examples/demo-project/alpha/AGENTS.md:1
 
 [Inspect sources] [Disable for this repo]
 ```
@@ -135,9 +134,9 @@ sequenceDiagram
     participant FS as Filesystem
     participant C as Context panel
 
-    U->>Z: Edit rose.md
+    U->>Z: Edit entry.md
     Z->>FS: Find applicable AGENTS.md files
-    FS-->>Z: root, project, red instructions
+    FS-->>Z: root, project, alpha instructions
     Z->>Z: Merge broad → narrow
     Z->>C: Show derived context + provenance
     Z->>U: Continue with scoped instructions
@@ -205,7 +204,7 @@ deno test
 
 ```json
 {
-  "target": "examples/demo-project/red/rose.md",
+  "target": "examples/demo-project/alpha/entry.md",
   "sources": [
     {
       "path": "AGENTS.md",
@@ -216,8 +215,8 @@ deno test
       "scope": "examples/demo-project"
     },
     {
-      "path": "examples/demo-project/red/AGENTS.md",
-      "scope": "examples/demo-project/red"
+      "path": "examples/demo-project/alpha/AGENTS.md",
+      "scope": "examples/demo-project/alpha"
     }
   ],
   "diagnostics": [],
