@@ -53,16 +53,16 @@ flowchart TB
 
 ## Example
 
-Suppose the task touches `examples/demo-project/wiki/importer.ts`:
+Suppose the task touches `examples/demo-project/red/rose.md`:
 
 ```text
 repository/
 ├── AGENTS.md
 └── examples/demo-project/
     ├── AGENTS.md
-    └── wiki/
+    └── red/
         ├── AGENTS.md
-        └── importer.ts   ← task target
+        └── rose.md   ← task target
 ```
 
 The resolver loads the applicable files from broadest to narrowest scope:
@@ -70,8 +70,8 @@ The resolver loads the applicable files from broadest to narrowest scope:
 ```mermaid
 flowchart LR
     R[repository/AGENTS.md] --> P[demo-project/AGENTS.md]
-    P --> W[wiki/AGENTS.md]
-    W --> O[Resolved context for importer.ts]
+    P --> D[red/AGENTS.md]
+    D --> O[Resolved context for rose.md]
 ```
 
 The user-facing result could look like this:
@@ -79,18 +79,18 @@ The user-facing result could look like this:
 ```text
 ACTIVE PROJECT CONTEXT
 
-Scope: examples/demo-project/wiki/**
+Scope: examples/demo-project/red/**
 Status: derived for this task
 
 ✓ Read README.md before editing
-✓ Use wiki query for knowledge-base searches
-✓ Run deno test after changes
-✓ Keep private data local
+✓ Prefer small, reversible changes
+✓ Prefer warm color tones
+✓ Rose inherits all red conventions
 
 Sources:
   AGENTS.md (repository scope, lines 1–4)
   examples/demo-project/AGENTS.md (project scope, lines 1–6)
-  examples/demo-project/wiki/AGENTS.md (wiki scope, lines 1–5)
+  examples/demo-project/red/AGENTS.md (red scope, lines 1–4)
 
 [Inspect sources] [Disable for this task] [Promote to Zo Rule]
 ```
@@ -139,9 +139,9 @@ sequenceDiagram
     participant FS as Filesystem
     participant C as Context panel
 
-    U->>Z: Edit importer.ts
+    U->>Z: Edit rose.md
     Z->>FS: Find applicable AGENTS.md files
-    FS-->>Z: root, project, wiki instructions
+    FS-->>Z: root, project, red instructions
     Z->>Z: Merge broad → narrow
     Z->>C: Show derived context + provenance
     Z->>U: Continue with scoped instructions
@@ -190,13 +190,13 @@ That makes the core behavior easy to test and discuss.
 Requires Deno 2.x.
 
 ```sh
-deno run --allow-read src/derive.ts examples/demo-project/wiki/importer.ts
+deno run --allow-read src/derive.ts examples/demo-project/red/rose.md
 ```
 
 Write JSON to a file:
 
 ```sh
-deno run --allow-read src/derive.ts examples/demo-project/wiki/importer.ts > derived-context.json
+deno run --allow-read src/derive.ts examples/demo-project/red/rose.md > derived-context.json
 ```
 
 Run tests:
@@ -209,7 +209,7 @@ deno test
 
 ```json
 {
-  "target": "examples/demo-project/wiki/importer.ts",
+  "target": "examples/demo-project/red/rose.md",
   "sources": [
     {
       "path": "AGENTS.md",
@@ -220,8 +220,8 @@ deno test
       "scope": "examples/demo-project"
     },
     {
-      "path": "examples/demo-project/wiki/AGENTS.md",
-      "scope": "examples/demo-project/wiki"
+      "path": "examples/demo-project/red/AGENTS.md",
+      "scope": "examples/demo-project/red"
     }
   ],
   "diagnostics": [],
@@ -366,37 +366,6 @@ set-membership matching on structured output.
 - Read-only prompts used throughout; edit-oriented prompts pending.
 - GPT-5.6 Luna is the only free-tier model on Zo; faster models require a paid
   subscription.
-
-## Repository layout
-
-```text
-.
-├── README.md
-├── deno.json
-├── examples/
-│   └── demo-project/
-│       ├── AGENTS.md
-│       ├── red/
-│       │   ├── AGENTS.md
-│       │   └── rose.md
-│       └── blue/
-│           ├── AGENTS.md
-│           └── violet.md
-├── skills/
-│   └── zocomputer-agents.md-evals/
-│       ├── SKILL.md
-│       ├── evals/
-│       │   └── evals.json
-│       ├── scripts/
-│       │   ├── ask.ts
-│       │   └── grade.ts
-│       └── references/
-│           └── expectations.md
-├── src/
-│   └── derive.ts
-└── tests/
-    └── derive_test.ts
-```
 
 ## License
 
