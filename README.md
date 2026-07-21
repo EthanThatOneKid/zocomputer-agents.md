@@ -262,6 +262,42 @@ Short version:
 > **Don't replace `AGENTS.md` with Zo Rules. Compile the relevant `AGENTS.md`
 > hierarchy into temporary Zo context.**
 
+## Evaluation
+
+The skill at
+[`skills/zocomputer-agents.md-evals/`](./skills/zocomputer-agents.md-evals/)
+runs a treatment-vs-control experiment to measure whether derived Zo Rules
+surface `AGENTS.md` instructions without requiring manual file discovery.
+
+### Experiment design
+
+| Group     | Zo Rules                         | AGENTS.md files | What's measured                                      |
+| --------- | -------------------------------- | --------------- | ---------------------------------------------------- |
+| Treatment | Derived from AGENTS.md hierarchy | On disk         | Agent should know instructions without reading files |
+| Control   | None                             | On disk         | Agent must manually discover instructions            |
+
+### Results (iteration 1)
+
+| Metric          | Treatment | Control        | Delta      |
+| --------------- | --------- | -------------- | ---------- |
+| Pass rate       | 100%      | 80.2%          | **+19.8%** |
+| Avg time        | 14.6s     | 20.8s          | **-6.3s**  |
+| Avg tokens      | 3,233     | 4,733          | **-1,500** |
+| AGENTS.md reads | 0         | 1–3 per target | —          |
+
+Three test cases cover 1-level (root only), 2-level (root → project), and
+3-level (root → project → wiki) AGENTS.md hierarchies. The only failing
+assertion in the control group: the agent had to manually read `AGENTS.md` files
+to find instructions. The treatment group never needed to read them — Zo Rules
+injected the context automatically.
+
+### Limitations
+
+- Same agent authored both treatment and control responses in iteration 1;
+  future iterations will use independent subagents for impartial comparison.
+- Read-only prompts were used to keep tests simple; edit-oriented prompts would
+  exercise the "run `deno test` after changes" instructions more realistically.
+
 ## Repository layout
 
 ```text
@@ -274,6 +310,15 @@ Short version:
 │       └── wiki/
 │           ├── AGENTS.md
 │           └── importer.ts
+├── skills/
+│   └── zocomputer-agents.md-evals/
+│       ├── SKILL.md
+│       ├── evals/
+│       │   └── evals.json
+│       ├── scripts/
+│       │   └── grade.ts
+│       └── references/
+│           └── expectations.md
 ├── src/
 │   └── derive.ts
 └── tests/

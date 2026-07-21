@@ -1,0 +1,60 @@
+{
+  "skill_name": "zocomputer-agents.md-evals",
+  "evals": [
+    {
+      "id": 1,
+      "eval_name": "full-three-level-hierarchy",
+      "target": "examples/demo-project/wiki/importer.ts",
+      "prompt": "Look at `examples/demo-project/wiki/importer.ts`. What project conventions, instructions, or rules should I know before working with this file? What am I expected to do after making changes?",
+      "expected_sources": [
+        "AGENTS.md",
+        "examples/demo-project/AGENTS.md",
+        "examples/demo-project/wiki/AGENTS.md"
+      ],
+      "assertions": [
+        "Agent mentions the repo-level instruction: 'Keep the resolver deterministic, inspectable, and source-linked'",
+        "Agent mentions the project-level instruction: 'Read the project README before editing'",
+        "Agent mentions the project-level instruction: 'Prefer small, reversible changes'",
+        "Agent mentions the wiki-level instruction: 'Use wiki query for knowledge-base searches'",
+        "Agent mentions the wiki-level instruction: 'Run deno test after changes'",
+        "Agent mentions the wiki-level instruction: 'Keep private data local; do not publish it by default'",
+        "Treatment pass does NOT read any AGENTS.md files via the read_file tool"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "eval_name": "two-level-project-scope",
+      "target": "examples/demo-project/README.md",
+      "prompt": "I need to update `examples/demo-project/README.md`. What instructions or conventions apply when editing files in this project? What should I keep in mind?",
+      "expected_sources": [
+        "AGENTS.md",
+        "examples/demo-project/AGENTS.md"
+      ],
+      "assertions": [
+        "Agent mentions the repo-level instruction about the resolver being deterministic",
+        "Agent mentions the project-level instruction: 'Read the project README before editing'",
+        "Agent mentions the project-level instruction: 'Prefer small, reversible changes'",
+        "Agent does NOT mention wiki-level instructions (wiki query, deno test, private data)",
+        "Treatment pass does NOT read any AGENTS.md files via the read_file tool"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "eval_name": "root-level-only",
+      "target": "deno.json",
+      "prompt": "I'm about to edit `deno.json` at the root of the zocomputer-agents.md repo. What should I know about this repository's conventions before I start?",
+      "expected_sources": [
+        "AGENTS.md"
+      ],
+      "assertions": [
+        "Agent mentions at least one of the repo-level instructions (design proposal, deterministic resolver, derived context)",
+        "Agent does NOT mention project-level instructions (read README, reversible changes, generated artifacts)",
+        "Agent does NOT mention wiki-level instructions (wiki query, deno test, private data)",
+        "Treatment pass does NOT read any AGENTS.md files via the read_file tool"
+      ],
+      "files": []
+    }
+  ]
+}
