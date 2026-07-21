@@ -276,6 +276,21 @@ surface `AGENTS.md` instructions without requiring manual file discovery.
 | Treatment | Derived from AGENTS.md hierarchy | On disk         | Agent should know instructions without reading files |
 | Control   | None                             | On disk         | Agent must manually discover instructions            |
 
+### Methodology
+
+1. Clone repo to Zo, verify Deno available.
+2. Run `src/derive.ts` for each test target; parse JSON to get sources and
+   scopes.
+3. Create Zo Rules via `zo_create_rule` — condition uses the derived scope
+   (`"When working on files in <scope>"`), instruction is the AGENTS.md content.
+4. **Treatment**: agent answers read-only prompt with rules active; no AGENTS.md
+   file reads permitted.
+5. Delete all rules via `zo_delete_rule`.
+6. **Control**: same prompts, no rules; agent must discover AGENTS.md files
+   manually.
+7. Grade both passes: check instruction recall per assertion and detect
+   AGENTS.md file reads.
+
 ### Results (iteration 1)
 
 | Metric          | Treatment | Control        | Delta      |
