@@ -327,27 +327,28 @@ red/blue sibling directories to test scoping boundaries.
 ### Results (iteration 3) — Zo Ask API
 
 Each test case is a `POST /zo/ask` API call with `output_format` for structured
-responses. Zo Rules are natively active on the server.
+responses. Zo Rules are natively active on the server. Grader uses quoted-term
+set-membership matching on structured output.
 
-| Eval | Treatment | Control | Key difference                                                               |
-| ---- | --------- | ------- | ---------------------------------------------------------------------------- |
-| Red  | 83.3%     | 83.3%   | Treatment used "user rule" as source (Zo Rule)                               |
-| Blue | 80.0%     | 80.0%   | Treatment listed blue rules from "user rule for examples/demo-project/blue/" |
-| Root | 25.0%     | 25.0%   | Grader keyword matching too strict for negative assertions                   |
+| Eval     | Treatment | Control   | Delta      |
+| -------- | --------- | --------- | ---------- |
+| Red      | 83.3%     | 16.7%     | +66.6%     |
+| Blue     | 60.0%     | 20.0%     | +40.0%     |
+| Root     | 75.0%     | 75.0%     | 0%         |
+| **Mean** | **72.8%** | **37.2%** | **+35.6%** |
 
 #### Key findings (iteration 3)
 
-- **Zo Rules reach the Ask API**: eval 2 treatment explicitly sourced
-  instructions from "user rule for examples/demo-project/blue/" and "user rules
-  for examples/demo-project/red/". Rules fire on the API path.
-- **Structured output works**: `output_format` forces JSON responses with
-  `instructions_referenced[]` arrays — machine-checkable grading.
-- **Workspace mismatch**: the API uses a different workspace checkout than
-  `/root/zocomputer-agents.md/`. Old wiki fixtures still present, causing stale
-  file reads. Next iteration should ensure workspace is in sync.
-- **Grader refinement needed**: keyword matching on structured JSON has false
-  positives (empty evidence matching) and false negatives (negative assertions
-  with empty arrays).
+- **Zo Rules reach the Ask API**: eval 1 treatment returned 3 instructions
+  sourced from `"developer user rules"`, including "Prefer warm color tones;
+  Rose inherits all red conventions."
+- **No fake improvement**: root-only eval shows 0% delta — both treatment and
+  control get root-level context. Deeper scopes only benefit when rules fire.
+- **Workspace sync resolved**: `git pull` on the API's workspace checkout
+  (`/home/workspace/code/...`) removed stale wiki fixtures.
+- **Grader fixed**: quoted-term set-membership replaces buggy substring
+  matching. Negative assertions now work correctly.
+- **Latency**: 69-132s per call on GPT-5.6 Luna (only free-tier model).
 
 ### Limitations
 

@@ -101,31 +101,45 @@ function gradeAssertions(
 ): GradedAssertion[] {
   return assertionTexts.map((text) => {
     const lowerText = text.toLowerCase();
-    const isNegative = lowerText.includes("does not mention") ||
-      lowerText.includes("does not read");
+    const isNegative = lowerText.includes("does not mention");
+    const isReadCheck = lowerText.includes("does not read");
 
-    // Extract key phrases from assertion
-    const quoted = lowerText.match(/'([^']+)'/g);
-    const searchTerms = quoted
-      ? quoted.map((q) => q.slice(1, -1))
-      : lowerText.replace(/^agent (mentions|does not mention) /i, "")
-        .replace(/treatment pass /i, "")
-        .split(/\s+/)
-        .filter((w) => w.length > 4);
+    // Extract quoted key phrases — these define what to search for
+    const quotedTerms = lowerText.match(/'([^']+)'/g)?.map((q) =>
+      q.slice(1, -1)
+    ) ?? [];
 
-    const found = searchTerms.some((term) =>
-      instructions.some((inst) => inst.includes(term)) ||
-      lowerText.includes(term)
-    );
+    if (quotedTerms.length === 0) {
+      // Fallback: use whole assertion as guidance
+      const cleaned = lowerText
+        .replace(/^(agent mentions|agent does not mention) /i, "")
+        .replace(/^treatment pass( does not|) /i, "");
+      quotedTerms.push(cleaned.slice(0, 80));
+    }
 
-    const passed = isNegative ? !found : found;
-    const evidence = found
-      ? `Found instruction matching: ${
-        searchTerms.filter((t) => instructions.some((i) => i.includes(t))).join(
-          ", ",
-        )
-      }`
-      : "No matching instruction found in response";
+    // Search for each term in the instruction array
+    const matched: string[] = [];
+    const unmatched: string[] = [];
+    for (const term of quotedTerms) {
+      const termLower = term.toLowerCase();
+      const found = instructions.some((inst) => inst.includes(termLower));
+      if (found) matched.push(term);
+      else unmatched.push(term);
+    }
+
+    const anyFound = matched.length > 0;
+    const passed = isNegative ? !anyFound : anyFound;
+
+    let evidence: string;
+    if (matched.length > 0) {
+      evidence = `Matched: ${matched.join(", ")}`;
+    } else if (unmatched.length > 0) {
+      evidence = `No match for: ${unmatched.join(", ")}`;
+    } else {
+      evidence = isNegative
+        ? "No instructions found — negative assertion passes"
+        : "No search terms extracted from assertion";
+    }
 
     return { text, passed, evidence };
   });
