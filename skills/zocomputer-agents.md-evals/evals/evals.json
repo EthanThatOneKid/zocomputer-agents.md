@@ -3,39 +3,41 @@
   "evals": [
     {
       "id": 1,
-      "eval_name": "full-three-level-hierarchy",
-      "target": "examples/demo-project/wiki/importer.ts",
-      "prompt": "Look at `examples/demo-project/wiki/importer.ts`. What project conventions, instructions, or rules should I know before working with this file? What am I expected to do after making changes?",
+      "eval_name": "red-deep-scoping",
+      "target": "examples/demo-project/red/rose.md",
+      "prompt": "Look at `examples/demo-project/red/rose.md`. What project conventions, instructions, or rules should I know before working with this file? What am I expected to do after making changes?",
       "expected_sources": [
         "AGENTS.md",
         "examples/demo-project/AGENTS.md",
-        "examples/demo-project/wiki/AGENTS.md"
+        "examples/demo-project/red/AGENTS.md"
       ],
       "assertions": [
         "Agent mentions the repo-level instruction: 'Keep the resolver deterministic, inspectable, and source-linked'",
         "Agent mentions the project-level instruction: 'Read the project README before editing'",
         "Agent mentions the project-level instruction: 'Prefer small, reversible changes'",
-        "Agent mentions the wiki-level instruction: 'Use wiki query for knowledge-base searches'",
-        "Agent mentions the wiki-level instruction: 'Run deno test after changes'",
-        "Agent mentions the wiki-level instruction: 'Keep private data local; do not publish it by default'",
+        "Agent mentions the red-level instruction: 'Prefer warm color tones'",
+        "Agent mentions the red-level instruction: 'Rose inherits all red conventions'",
+        "Agent does NOT mention blue-level instructions (cool tones, violet)",
         "Treatment pass does NOT read any AGENTS.md files via the read_file tool"
       ],
       "files": []
     },
     {
       "id": 2,
-      "eval_name": "two-level-project-scope",
-      "target": "examples/demo-project/README.md",
-      "prompt": "I need to update `examples/demo-project/README.md`. What instructions or conventions apply when editing files in this project? What should I keep in mind?",
+      "eval_name": "blue-deep-scoping",
+      "target": "examples/demo-project/blue/violet.md",
+      "prompt": "Look at `examples/demo-project/blue/violet.md`. What project conventions, instructions, or rules should I know before working with this file? Are there any other directories nearby with different rules?",
       "expected_sources": [
         "AGENTS.md",
-        "examples/demo-project/AGENTS.md"
+        "examples/demo-project/AGENTS.md",
+        "examples/demo-project/blue/AGENTS.md"
       ],
       "assertions": [
         "Agent mentions the repo-level instruction about the resolver being deterministic",
         "Agent mentions the project-level instruction: 'Read the project README before editing'",
-        "Agent mentions the project-level instruction: 'Prefer small, reversible changes'",
-        "Agent does NOT mention wiki-level instructions (wiki query, deno test, private data)",
+        "Agent mentions the blue-level instruction: 'Prefer cool color tones'",
+        "Agent mentions the blue-level instruction: 'Violet inherits all blue conventions'",
+        "Agent does NOT mention red-level instructions (warm tones, rose)",
         "Treatment pass does NOT read any AGENTS.md files via the read_file tool"
       ],
       "files": []
@@ -51,27 +53,8 @@
       "assertions": [
         "Agent mentions at least one of the repo-level instructions (design proposal, deterministic resolver, derived context)",
         "Agent does NOT mention project-level instructions (read README, reversible changes, generated artifacts)",
-        "Agent does NOT mention wiki-level instructions (wiki query, deno test, private data)",
-        "Treatment pass does NOT read any AGENTS.md files via the read_file tool"
-      ],
-      "files": []
-    },
-    {
-      "id": 4,
-      "eval_name": "scoping-sibling-isolation",
-      "target": "examples/demo-project/wiki/importer.ts",
-      "prompt": "Look at `examples/demo-project/wiki/importer.ts`. What project conventions, instructions, or rules should I know before working with this file? Are there any other directories in the project that have separate instructions — and do those apply here?",
-      "expected_sources": [
-        "AGENTS.md",
-        "examples/demo-project/AGENTS.md",
-        "examples/demo-project/wiki/AGENTS.md"
-      ],
-      "assertions": [
-        "Agent mentions the wiki-level instruction: 'Use wiki query for knowledge-base searches'",
-        "Agent mentions the project-level instruction: 'Read the project README before editing'",
-        "Agent mentions the repo-level instruction: 'Keep the resolver deterministic, inspectable, and source-linked'",
-        "Agent does NOT mention 'Rust' or 'Fly.io' or 'encrypted at rest' (sibling other/AGENTS.md)",
-        "Agent does NOT apply instructions from the sibling other/ directory to this target",
+        "Agent does NOT mention red-level instructions (warm color tones, rose)",
+        "Agent does NOT mention blue-level instructions (cool color tones, violet)",
         "Treatment pass does NOT read any AGENTS.md files via the read_file tool"
       ],
       "files": []

@@ -4,30 +4,42 @@ import { derive } from "../src/derive.ts";
 const root = new URL("../", import.meta.url).pathname;
 
 Deno.test("derives AGENTS.md from broad to narrow scope", async () => {
-  const result = await derive(root, "examples/demo-project/wiki/importer.ts");
+  const result = await derive(root, "examples/demo-project/red/rose.md");
 
-  assertEquals(result.target, "examples/demo-project/wiki/importer.ts");
+  assertEquals(result.target, "examples/demo-project/red/rose.md");
   assertEquals(result.targetExists, true);
   assertEquals(result.sources.map((source) => source.path), [
     "AGENTS.md",
     "examples/demo-project/AGENTS.md",
-    "examples/demo-project/wiki/AGENTS.md",
+    "examples/demo-project/red/AGENTS.md",
   ]);
   assertStringIncludes(
     result.context,
     "Read the project README before editing.",
   );
-  assertStringIncludes(result.context, "Use `wiki query`");
+  assertStringIncludes(result.context, "Prefer warm color tones.");
   assertEquals(result.diagnostics, []);
 });
 
+Deno.test("excludes sibling AGENTS.md from non-ancestor directories", async () => {
+  const result = await derive(root, "examples/demo-project/red/rose.md");
+
+  assertEquals(result.sources.length, 3);
+  const paths = result.sources.map((s) => s.path);
+  assertEquals(paths.includes("examples/demo-project/blue/AGENTS.md"), false);
+  assertEquals(
+    result.context.includes("Prefer cool color tones."),
+    false,
+  );
+});
+
 Deno.test("reports a missing target without inventing sources", async () => {
-  const result = await derive(root, "examples/demo-project/wiki/missing.ts");
+  const result = await derive(root, "examples/demo-project/red/missing.md");
 
   assertEquals(result.targetExists, false);
   assertEquals(result.sources, []);
   assertEquals(result.diagnostics, [
-    "Target does not exist: examples/demo-project/wiki/missing.ts",
+    "Target does not exist: examples/demo-project/red/missing.md",
     "No applicable AGENTS.md files found.",
   ]);
 });

@@ -1,42 +1,35 @@
 # Expected instruction recall per test case
 
-## Eval 1 — full-three-level-hierarchy
+## Eval 1 — red-deep-scoping
 
-Target: `examples/demo-project/wiki/importer.ts` Scope: root → project → wiki
+Target: `examples/demo-project/red/rose.md` Scope: root → project → red
 
-### Root AGENTS.md (must appear in both treatment and control)
+### Must appear (ancestor chain)
 
-- "This repository is a design proposal and Deno prototype"
-- "Keep the resolver deterministic, inspectable, and source-linked"
-- "Treat derived context as temporary project input, not a hidden permanent
-  rule"
+- Root: "design proposal and Deno prototype", "Keep the resolver deterministic"
+- Project: "Read the project README before editing", "Prefer small, reversible
+  changes"
+- Red: "Prefer warm color tones", "Rose inherits all red conventions"
 
-### Project AGENTS.md (must appear in treatment; control may miss)
+### Must NOT appear (sibling, not ancestor)
 
-- "Read the project README before editing"
-- "Prefer small, reversible changes"
-- "Keep generated artifacts out of source directories"
-
-### Wiki AGENTS.md (most likely missed by control without deeper file discovery)
-
-- "Use `wiki query` for knowledge-base searches"
-- "Run `deno test` after changes"
-- "Keep private data local; do not publish it by default"
+- Blue: "Prefer cool color tones", "Violet inherits all blue conventions"
 
 ---
 
-## Eval 2 — two-level-project-scope
+## Eval 2 — blue-deep-scoping
 
-Target: `examples/demo-project/README.md` Scope: root → project
+Target: `examples/demo-project/blue/violet.md` Scope: root → project → blue
 
-### Must appear
+### Must appear (ancestor chain)
 
-- Root instructions (at least one)
-- Project instructions (at least two)
+- Root: "design proposal", "deterministic", "source-linked"
+- Project: "Read the project README", "reversible changes"
+- Blue: "Prefer cool color tones", "Violet inherits all blue conventions"
 
-### Must NOT appear (verifying scoping correctness)
+### Must NOT appear (sibling, not ancestor)
 
-- Wiki-level instructions (these are in a sibling directory, not an ancestor)
+- Red: "Prefer warm color tones", "Rose inherits all red conventions"
 
 ---
 
@@ -46,9 +39,10 @@ Target: `deno.json` Scope: root only
 
 ### Must appear
 
-- Root instructions (at least one)
+- Root: at least one repo-level instruction
 
 ### Must NOT appear
 
-- Project instructions
-- Wiki instructions
+- Project: "Read README", "reversible changes", "generated artifacts"
+- Red: any red-level instructions
+- Blue: any blue-level instructions

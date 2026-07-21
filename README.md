@@ -305,34 +305,34 @@ Three test cases cover 1-level (root only), 2-level (root → project), and
 
 ### Results (iteration 2) — independent subagents
 
+Three color-based test cases (red/rose.md, blue/violet.md, deno.json) with
+red/blue sibling directories to test scoping boundaries.
+
 | Metric          | Treatment | Control | Delta  |
 | --------------- | --------- | ------- | ------ |
-| Pass rate       | 60.3%     | 71.9%   | -11.6% |
-| Avg time        | 18.8s     | 24.5s   | -5.7s  |
-| Avg tokens      | 4,400     | 6,900   | -2,500 |
-| AGENTS.md reads | 0         | 2–4     | —      |
-
-Four test cases including a new **scoping isolation** eval that verifies sibling
-`AGENTS.md` files do not leak into ancestor-derived context.
+| Pass rate       | 72.2%     | 77.5%   | -5.3%  |
+| Avg time        | 19.3s     | 25.3s   | -6.0s  |
+| Avg tokens      | 4,733     | 6,967   | -2,233 |
+| AGENTS.md reads | 0         | 1–4     | —      |
 
 #### Key findings (iteration 2)
 
-- **Zo Rules do not reach subagents**: treatment subagents were forbidden from
-  reading `AGENTS.md` files and had no rule-injected context → 14.3% for the
-  3-level eval.
-- **Scoping error detected**: eval 2 control read `wiki/AGENTS.md` for a target
-  at `demo-project/` level. `wiki/` is a sibling, not an ancestor. The derive
-  resolver correctly excludes it.
-- **Sibling isolation confirmed** (eval 4): both treatment and control correctly
-  identified that `other/AGENTS.md` instructions do not apply to a `wiki/`
-  target. The derive resolver walks only ancestor directories.
+- **Zo Rules reach subagents via `zo_list_rules`**: the red eval treatment
+  subagent called `zo_list_rules`, discovered all 3 ancestor rules, and scored
+  100% without reading any `AGENTS.md` files. This proves the derive pipeline
+  works end-to-end when rules are discoverable.
+- **Inconsistency without tool discovery**: the blue eval treatment subagent did
+  not use `zo_list_rules` and scored 16.7% — blind without file reads. Success
+  depends on whether the subagent discovers the MCP tool.
+- **Sibling isolation confirmed**: both evals correctly excluded non-ancestor
+  sibling instructions (red rules for blue target, blue rules for red target).
 
 ### Limitations
 
 - Iteration 1: same agent authored both passes; iteration 2 used independent
   subagents.
-- Zo Rules created on the remote server do not propagate to locally-spawned
-  subagents — a pre-requisite for full end-to-end testing.
+- Zo Rules reach subagents only when discovered via `zo_list_rules`;
+  auto-injection would make the pipeline reliable.
 - Read-only prompts were used; edit-oriented prompts would exercise post-change
   instructions more realistically.
 
@@ -345,11 +345,12 @@ Four test cases including a new **scoping isolation** eval that verifies sibling
 ├── examples/
 │   └── demo-project/
 │       ├── AGENTS.md
-│       ├── other/
-│       │   └── AGENTS.md
-│       └── wiki/
+│       ├── red/
+│       │   ├── AGENTS.md
+│       │   └── rose.md
+│       └── blue/
 │           ├── AGENTS.md
-│           └── importer.ts
+│           └── violet.md
 ├── skills/
 │   └── zocomputer-agents.md-evals/
 │       ├── SKILL.md
