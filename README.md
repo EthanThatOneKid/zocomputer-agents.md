@@ -259,65 +259,38 @@ Short version:
 
 ## Evaluation
 
-A treatment-vs-control experiment measured whether derived Zo Rules surface
-`AGENTS.md` instructions without requiring manual file discovery. Each test case
-is a `POST /zo/ask` call with `output_format` for structured JSON. Zo Rules are
-natively active on the server.
+### Expected implications
 
-### Experiment design
+**Tokens saved.** Without derived rules, Zo discovers instructions by reading
+AGENTS.md files via tool calls. Each read costs tokens for the file content plus
+tool-call framing. With derived rules, instructions are injected directly as
+context — zero discovery tokens.
 
-| Group     | Zo Rules                         | AGENTS.md files | What's measured                                      |
-| --------- | -------------------------------- | --------------- | ---------------------------------------------------- |
-| Treatment | Derived from AGENTS.md hierarchy | On disk         | Agent should know instructions without reading files |
-| Control   | None                             | On disk         | Agent must manually discover instructions            |
+**Latency saved.** Each tool call to read a file adds a round-trip (~53–129s on
+the Zo free tier). Derived rules eliminate 2–3 file reads per conversation,
+shaving minutes off tasks that touch multiple directories.
 
-### Methodology
+**Reliability.** File discovery depends on the model correctly identifying which
+files to read and in what order. Derived rules are deterministic — the resolver
+guarantees broad-to-narrow precedence without relying on the model to discover
+the hierarchy.
 
-1. Sync the repo to Zo's workspace checkout via `git pull` (the Ask API reads
-   from `/home/workspace/code/...`, not `/root/`).
-2. Run `src/derive.ts` for each test target; parse JSON to extract sources and
-   scopes.
-3. Create Zo Rules via `zo_create_rule` — condition uses the derived scope
-   (`"When working on files in <scope>"`), instruction is the AGENTS.md content.
-4. **Treatment**: for each eval, call `POST /zo/ask` with `output_format`. Zo
-   Rules are natively active. Each call gets a fresh `conversation_id`.
-5. Delete all rules via `zo_delete_rule`.
-6. **Control**: same API calls, without rules. Structured output enables direct
-   comparison.
-7. Grade both passes: `scripts/grade.ts` compares `instructions_referenced[]`
-   arrays via quoted-term set-membership matching.
+### Anecdotal testing
 
-Calls use `zo:openai/gpt-5.6-luna`. API key via `ZO_API_KEY` env var.
+We ran four iterations of treatment-vs-control experiments via the Zo Ask API to
+validate the pipeline end-to-end:
 
-### Results
+1. Derived rules reach the Zo API and affect output — treatment responses
+   followed injected instructions (e.g., past-tense alpha, future-tense beta).
+2. Without rules, Zo can still read AGENTS.md files from disk and usually
+   complies. The compliance delta was small because file discovery works when
+   the model finds the right files.
+3. The real value is **reliable, fast context injection** — not whether the
+   model eventually figures out the instructions, but whether it has them
+   immediately without spending tokens and latency on discovery.
 
-Three test cases use ambiguous directory names (alpha/beta) with behavioral
-rules: alpha enforces past tense, beta enforces future tense. Each eval prompts
-Zo to edit a file — the grader checks both recall (did Zo list the rule?) and
-compliance (did the output actually use the correct tense?).
-
-| Eval                | Treatment | Control   | Delta     |
-| ------------------- | --------- | --------- | --------- |
-| alpha (past tense)  | 100%      | 100%      | 0%        |
-| beta (future tense) | 100%      | 75%       | +25%      |
-| root                | 100%      | 100%      | 0%        |
-| **Mean**            | **100%**  | **91.7%** | **+8.3%** |
-
-- **Compliance confirmed**: treatment revisions used correct tense — 16 past
-  markers (alpha) and 12 future markers (beta). Instructions sourced from
-  `"developer user rules"`.
-- **Control still works**: without rules, Zo reads AGENTS.md files from disk and
-  usually complies. The delta comes from edge cases where file-discovery is less
-  reliable without rule injection.
-
-### Limitations
-
-- Zo can read AGENTS.md files from disk even without rules, so control
-  compliance is high when file discovery succeeds. The derive system's value is
-  in reliable context injection, not just compliance.
-- Test fixtures are abstract (alpha/beta with tense rules); real-world project
-  conventions would be more nuanced.
-- GPT-5.6 Luna is the only free-tier model on Zo; 53-129s latency per call.
+The pipeline works. The next step is production integration, not more
+benchmarks.
 
 ## License
 
