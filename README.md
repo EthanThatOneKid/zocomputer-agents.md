@@ -261,17 +261,17 @@ Short version:
 
 ### Expected implications
 
-**Tokens saved.** Without derived rules, Zo discovers instructions by reading
+Tokens saved: Without derived rules, Zo discovers instructions by reading
 AGENTS.md files via tool calls. Each read costs tokens for the file content plus
 tool-call framing. With derived rules, instructions are injected directly as
-context — zero discovery tokens.
+context, zero discovery tokens.
 
-**Latency saved.** Each tool call to read a file adds a round-trip (~53–129s on
-the Zo free tier). Derived rules eliminate 2–3 file reads per conversation,
-shaving minutes off tasks that touch multiple directories.
+Latency saved: Each tool call to read a file adds a round-trip (~53-129s on the
+Zo free tier). Derived rules eliminate 2-3 file reads per conversation, shaving
+minutes off tasks that touch multiple directories.
 
-**Reliability.** File discovery depends on the model correctly identifying which
-files to read and in what order. Derived rules are deterministic — the resolver
+Reliability: File discovery depends on the model correctly identifying which
+files to read and in what order. Derived rules are deterministic. The resolver
 guarantees broad-to-narrow precedence without relying on the model to discover
 the hierarchy.
 
@@ -280,14 +280,14 @@ the hierarchy.
 We ran four iterations of treatment-vs-control experiments via the Zo Ask API to
 validate the pipeline end-to-end:
 
-1. Derived rules reach the Zo API and affect output — treatment responses
+1. Derived rules reach the Zo API and affect output; treatment responses
    followed injected instructions (e.g., past-tense alpha, future-tense beta).
 2. Without rules, Zo can still read AGENTS.md files from disk and usually
    complies. The compliance delta was small because file discovery works when
    the model finds the right files.
-3. The real value is **reliable, fast context injection** — not whether the
-   model eventually figures out the instructions, but whether it has them
-   immediately without spending tokens and latency on discovery.
+3. The real value is reliable, fast context injection, not whether the model
+   eventually figures out the instructions, but whether it has them immediately
+   without spending tokens and latency on discovery.
 
 The pipeline works. The next step is production integration, not more
 benchmarks.
