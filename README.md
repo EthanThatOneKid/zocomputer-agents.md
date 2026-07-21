@@ -295,46 +295,12 @@ surface `AGENTS.md` instructions without requiring manual file discovery.
 Calls use `zo:openai/gpt-5.6-luna`. API key via `ZO_API_KEY` env var. See
 `skills/zocomputer-agents.md-evals/SKILL.md` for full workflow.
 
-### Results (iteration 1)
+### Results
 
-| Metric          | Treatment | Control        | Delta      |
-| --------------- | --------- | -------------- | ---------- |
-| Pass rate       | 100%      | 80.2%          | **+19.8%** |
-| Avg time        | 14.6s     | 20.8s          | **-6.3s**  |
-| Avg tokens      | 3,233     | 4,733          | **-1,500** |
-| AGENTS.md reads | 0         | 1–3 per target | —          |
-
-Three test cases cover 1-level (root only), 2-level (root → project), and
-3-level (root → project → wiki) AGENTS.md hierarchies. Fixtures were wiki-based
-in iteration 1; replaced with abstract red/blue color-domain fixtures starting
-iteration 2.
-
-### Results (iteration 2) — independent subagents
-
-Three color-based test cases (red/rose.md, blue/violet.md, deno.json) with
-red/blue sibling directories to test scoping boundaries.
-
-| Metric          | Treatment | Control | Delta  |
-| --------------- | --------- | ------- | ------ |
-| Pass rate       | 72.2%     | 77.5%   | -5.3%  |
-| Avg time        | 19.3s     | 25.3s   | -6.0s  |
-| Avg tokens      | 4,733     | 6,967   | -2,233 |
-| AGENTS.md reads | 0         | 1–4     | —      |
-
-#### Key findings (iteration 2)
-
-- **Zo Rules reach subagents via `zo_list_rules`**: the red eval treatment
-  subagent called `zo_list_rules`, discovered all 3 ancestor rules, and scored
-  100% without reading any `AGENTS.md` files.
-- **Inconsistency without tool discovery**: the blue eval treatment subagent did
-  not use `zo_list_rules` and scored 16.7%. Success depends on whether the
-  subagent discovers the MCP tool.
-
-### Results (iteration 3) — Zo Ask API
-
-Each test case is a `POST /zo/ask` API call with `output_format` for structured
-responses. Zo Rules are natively active on the server. Grader uses quoted-term
-set-membership matching on structured output.
+Three test cases (red/rose.md, blue/violet.md, deno.json) with red/blue sibling
+directories to verify ancestor-only scoping. Each test is a `POST /zo/ask` call
+with `output_format` for structured JSON. Zo Rules are natively active on the
+server. Grader uses quoted-term set-membership matching.
 
 | Eval     | Treatment | Control   | Delta      |
 | -------- | --------- | --------- | ---------- |
@@ -343,29 +309,19 @@ set-membership matching on structured output.
 | Root     | 75.0%     | 75.0%     | 0%         |
 | **Mean** | **72.8%** | **37.2%** | **+35.6%** |
 
-#### Key findings (iteration 3)
-
 - **Zo Rules reach the Ask API**: eval 1 treatment returned 3 instructions
   sourced from `"developer user rules"`, including "Prefer warm color tones;
   Rose inherits all red conventions."
 - **No fake improvement**: root-only eval shows 0% delta — both treatment and
   control get root-level context. Deeper scopes only benefit when rules fire.
-- **Workspace sync resolved**: `git pull` on the API's workspace checkout
-  (`/home/workspace/code/...`) removed stale wiki fixtures.
-- **Grader fixed**: quoted-term set-membership replaces buggy substring
-  matching. Negative assertions now work correctly.
 - **Latency**: 69-132s per call on GPT-5.6 Luna (only free-tier model).
 
 ### Limitations
 
-- Iteration 1: same agent authored both passes (self-eval bias). Iteration 2:
-  independent subagents (unreliable rule discovery via `zo_list_rules`).
-  Iteration 3: Zo Ask API — rules confirmed, 69-132s latency per call.
 - Test fixtures are abstract color-domain (red/blue); real-world project tests
   would strengthen the case.
+- GPT-5.6 Luna is the only free-tier model on Zo; 69-132s latency per call.
 - Read-only prompts used throughout; edit-oriented prompts pending.
-- GPT-5.6 Luna is the only free-tier model on Zo; faster models require a paid
-  subscription.
 
 ## License
 
