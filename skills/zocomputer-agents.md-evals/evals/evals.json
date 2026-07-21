@@ -55,6 +55,26 @@
         "Treatment pass does NOT read any AGENTS.md files via the read_file tool"
       ],
       "files": []
+    },
+    {
+      "id": 4,
+      "eval_name": "scoping-sibling-isolation",
+      "target": "examples/demo-project/wiki/importer.ts",
+      "prompt": "Look at `examples/demo-project/wiki/importer.ts`. What project conventions, instructions, or rules should I know before working with this file? Are there any other directories in the project that have separate instructions — and do those apply here?",
+      "expected_sources": [
+        "AGENTS.md",
+        "examples/demo-project/AGENTS.md",
+        "examples/demo-project/wiki/AGENTS.md"
+      ],
+      "assertions": [
+        "Agent mentions the wiki-level instruction: 'Use wiki query for knowledge-base searches'",
+        "Agent mentions the project-level instruction: 'Read the project README before editing'",
+        "Agent mentions the repo-level instruction: 'Keep the resolver deterministic, inspectable, and source-linked'",
+        "Agent does NOT mention 'Rust' or 'Fly.io' or 'encrypted at rest' (sibling other/AGENTS.md)",
+        "Agent does NOT apply instructions from the sibling other/ directory to this target",
+        "Treatment pass does NOT read any AGENTS.md files via the read_file tool"
+      ],
+      "files": []
     }
   ]
 }

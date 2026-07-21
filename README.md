@@ -301,17 +301,40 @@ surface `AGENTS.md` instructions without requiring manual file discovery.
 | AGENTS.md reads | 0         | 1–3 per target | —          |
 
 Three test cases cover 1-level (root only), 2-level (root → project), and
-3-level (root → project → wiki) AGENTS.md hierarchies. The only failing
-assertion in the control group: the agent had to manually read `AGENTS.md` files
-to find instructions. The treatment group never needed to read them — Zo Rules
-injected the context automatically.
+3-level (root → project → wiki) AGENTS.md hierarchies.
+
+### Results (iteration 2) — independent subagents
+
+| Metric          | Treatment | Control | Delta  |
+| --------------- | --------- | ------- | ------ |
+| Pass rate       | 60.3%     | 71.9%   | -11.6% |
+| Avg time        | 18.8s     | 24.5s   | -5.7s  |
+| Avg tokens      | 4,400     | 6,900   | -2,500 |
+| AGENTS.md reads | 0         | 2–4     | —      |
+
+Four test cases including a new **scoping isolation** eval that verifies sibling
+`AGENTS.md` files do not leak into ancestor-derived context.
+
+#### Key findings (iteration 2)
+
+- **Zo Rules do not reach subagents**: treatment subagents were forbidden from
+  reading `AGENTS.md` files and had no rule-injected context → 14.3% for the
+  3-level eval.
+- **Scoping error detected**: eval 2 control read `wiki/AGENTS.md` for a target
+  at `demo-project/` level. `wiki/` is a sibling, not an ancestor. The derive
+  resolver correctly excludes it.
+- **Sibling isolation confirmed** (eval 4): both treatment and control correctly
+  identified that `other/AGENTS.md` instructions do not apply to a `wiki/`
+  target. The derive resolver walks only ancestor directories.
 
 ### Limitations
 
-- Same agent authored both treatment and control responses in iteration 1;
-  future iterations will use independent subagents for impartial comparison.
-- Read-only prompts were used to keep tests simple; edit-oriented prompts would
-  exercise the "run `deno test` after changes" instructions more realistically.
+- Iteration 1: same agent authored both passes; iteration 2 used independent
+  subagents.
+- Zo Rules created on the remote server do not propagate to locally-spawned
+  subagents — a pre-requisite for full end-to-end testing.
+- Read-only prompts were used; edit-oriented prompts would exercise post-change
+  instructions more realistically.
 
 ## Repository layout
 
@@ -322,6 +345,8 @@ injected the context automatically.
 ├── examples/
 │   └── demo-project/
 │       ├── AGENTS.md
+│       ├── other/
+│       │   └── AGENTS.md
 │       └── wiki/
 │           ├── AGENTS.md
 │           └── importer.ts
