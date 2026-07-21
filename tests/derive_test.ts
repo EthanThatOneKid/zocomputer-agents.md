@@ -10,7 +10,8 @@ Deno.test("derives AGENTS.md from broad to narrow scope", async () => {
   assertEquals(result.targetExists, true);
   assertEquals(result.sources.map((source) => source.path), [
     "AGENTS.md",
-    "wiki/AGENTS.md",
+    "examples/demo-project/AGENTS.md",
+    "examples/demo-project/wiki/AGENTS.md",
   ]);
   assertStringIncludes(
     result.context,
