@@ -278,18 +278,22 @@ surface `AGENTS.md` instructions without requiring manual file discovery.
 
 ### Methodology
 
-1. Clone repo to Zo, verify Deno available.
-2. Run `src/derive.ts` for each test target; parse JSON to get sources and
+1. Sync the repo to Zo's workspace checkout via `git pull` (the Ask API reads
+   from `/home/workspace/code/...`, not `/root/`).
+2. Run `src/derive.ts` for each test target; parse JSON to extract sources and
    scopes.
 3. Create Zo Rules via `zo_create_rule` — condition uses the derived scope
    (`"When working on files in <scope>"`), instruction is the AGENTS.md content.
-4. **Treatment**: agent answers read-only prompt with rules active; no AGENTS.md
-   file reads permitted.
+4. **Treatment**: for each eval, call `POST /zo/ask` with `output_format`. Zo
+   Rules are natively active. Each call gets a fresh `conversation_id`.
 5. Delete all rules via `zo_delete_rule`.
-6. **Control**: same prompts, no rules; agent must discover AGENTS.md files
-   manually.
-7. Grade both passes: check instruction recall per assertion and detect
-   AGENTS.md file reads.
+6. **Control**: same API calls, without rules. Structured output enables direct
+   comparison.
+7. Grade both passes: `scripts/grade.ts` compares `instructions_referenced[]`
+   arrays via quoted-term set-membership matching.
+
+Calls use `zo:openai/gpt-5.6-luna`. API key via `ZO_API_KEY` env var. See
+`skills/zocomputer-agents.md-evals/SKILL.md` for full workflow.
 
 ### Results (iteration 1)
 
@@ -301,7 +305,9 @@ surface `AGENTS.md` instructions without requiring manual file discovery.
 | AGENTS.md reads | 0         | 1–3 per target | —          |
 
 Three test cases cover 1-level (root only), 2-level (root → project), and
-3-level (root → project → wiki) AGENTS.md hierarchies.
+3-level (root → project → wiki) AGENTS.md hierarchies. Fixtures were wiki-based
+in iteration 1; replaced with abstract red/blue color-domain fixtures starting
+iteration 2.
 
 ### Results (iteration 2) — independent subagents
 
@@ -352,11 +358,14 @@ set-membership matching on structured output.
 
 ### Limitations
 
-- Iteration 1: same agent authored both passes; iteration 2 used independent
-  subagents; iteration 3 used Zo Ask API calls.
-- Zo Ask API workspace checkout may differ from the derive source checkout.
-- Negative assertions (`does NOT mention`) need semantic, not keyword, grading.
+- Iteration 1: same agent authored both passes (self-eval bias). Iteration 2:
+  independent subagents (unreliable rule discovery via `zo_list_rules`).
+  Iteration 3: Zo Ask API — rules confirmed, 69-132s latency per call.
+- Test fixtures are abstract color-domain (red/blue); real-world project tests
+  would strengthen the case.
 - Read-only prompts used throughout; edit-oriented prompts pending.
+- GPT-5.6 Luna is the only free-tier model on Zo; faster models require a paid
+  subscription.
 
 ## Repository layout
 
@@ -379,6 +388,7 @@ set-membership matching on structured output.
 │       ├── evals/
 │       │   └── evals.json
 │       ├── scripts/
+│       │   ├── ask.ts
 │       │   └── grade.ts
 │       └── references/
 │           └── expectations.md
