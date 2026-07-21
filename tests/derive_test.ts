@@ -6,7 +6,7 @@ const root = new URL("../", import.meta.url).pathname;
 Deno.test("derives AGENTS.md from broad to narrow scope", async () => {
   const result = await derive(root, "examples/demo-project/wiki/importer.ts");
 
-  assertEquals(result.target, "wiki/importer.ts");
+  assertEquals(result.target, "examples/demo-project/wiki/importer.ts");
   assertEquals(result.targetExists, true);
   assertEquals(result.sources.map((source) => source.path), [
     "AGENTS.md",
