@@ -1,0 +1,10 @@
+{
+  "tasks": {
+    "test": "deno test --allow-read",
+    "demo": "deno run --allow-read src/derive.ts examples/demo-project/wiki/importer.ts"
+  },
+  "compilerOptions": {
+    "strict": true,
+    "noUncheckedIndexedAccess": true
+  }
+}
