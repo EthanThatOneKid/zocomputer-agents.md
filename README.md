@@ -98,7 +98,9 @@ the user cannot inspect, the feature becomes difficult to trust and debug.
 A useful boundary is:
 
 - Put portable project knowledge, file-layout conventions, build commands, and
-  directory-specific constraints in `AGENTS.md`.
+  directory-specific constraints in the project instruction file Zo supports for
+  that repo, whether that's `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`,
+  `.cursorrules`, or another convention the harness recognizes.
 - Put Zo-specific personal behavior, channel behavior, and cross-project
   preferences in Zo Rules.
 - Let derived context bridge the two without making either file pretend to be
