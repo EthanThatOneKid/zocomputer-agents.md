@@ -18,7 +18,7 @@ const AGENTS_FILENAME = "AGENTS.md";
 
 function displayPath(root: string, path: string): string {
   const value = relative(root, path);
-  return value === "" ? "." : value;
+  return (value === "" ? "." : value).split("\\").join("/");
 }
 
 function lineNumbered(
@@ -59,7 +59,7 @@ function relevantDirectories(root: string, target: string): string[] {
     directories.unshift(current);
     if (current === root) break;
     const parent = resolve(current, "..");
-    if (parent === current || !current.startsWith(`${root}/`)) break;
+    if (parent === current || relative(root, parent).startsWith("..")) break;
     current = parent;
   }
 

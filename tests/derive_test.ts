@@ -1,7 +1,8 @@
 import { assertEquals, assertStringIncludes } from "jsr:@std/assert@1";
+import { fromFileUrl } from "jsr:@std/path@1";
 import { derive } from "../src/derive.ts";
 
-const root = new URL("../", import.meta.url).pathname;
+const root = fromFileUrl(new URL("../", import.meta.url));
 
 Deno.test("derives AGENTS.md from broad to narrow scope", async () => {
   const result = await derive(
