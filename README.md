@@ -3,6 +3,10 @@
 A design proposal and small Deno prototype for deriving scoped, inspectable Zo
 context from recursive `AGENTS.md` files.
 
+> **Origin:** This proposal emerged from a feature request in the Zo Computer Club
+> Discord. See the original discussion:
+> https://www.answeroverflow.com/m/1528897676865830983
+
 > **AGENTS.md is the portable source. A derived Zo Rule is the compiled,
 > task-scoped output.**
 
